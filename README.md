@@ -101,6 +101,12 @@ go build -o proxy-server.exe cmd/main.go
 获取更详细的客户端模式使用说明，包括 SOCKS5 和 WebSocket
 协议的具体配置方法和实际应用场景。
 
+**开发规范**: 请查看 [项目开发规范](提示词.md)
+了解项目的架构设计、技术实现规范和核心功能模块说明。
+
+**任务进度**: 请查看 [任务清单](TASK_LIST.md)
+了解项目的开发进度、已完成功能和待完成任务。
+
 ## 配置说明
 
 ### 配置文件格式
@@ -316,9 +322,31 @@ type ProxyServer interface {
 - 验证上游代理认证信息
 - 确认网络连接正常
 
-### 日志调试
+### 日志系统
 
-系统提供详细的日志信息，可通过以下方式启用调试模式：
+系统提供完整的日志记录功能，包括连接成功和失败状态的详细日志输出：
+
+#### 服务端连接日志
+
+- **SOCKS5 服务端**: 记录客户端连接地址、认证状态、连接建立和处理结果
+- **WebSocket 服务端**: 记录连接尝试、认证成功/失败、升级失败及连接处理结果
+
+#### 日志输出示例
+
+```bash
+# 启动服务端（自动输出连接日志到 stdout）
+./proxy-server.exe -mode server -protocol socks5 -addr :1080
+
+# 输出示例：
+# 2025/06/24 10:30:15 SOCKS5 server listening on :1080
+# 2025/06/24 10:30:20 New SOCKS5 connection from 192.168.1.100:54321
+# 2025/06/24 10:30:20 SOCKS5 connection from 192.168.1.100:54321 handled successfully
+# 2025/06/24 10:30:25 SOCKS5 connection from 192.168.1.100:54321 failed: connection timeout
+```
+
+#### 调试模式
+
+启用详细调试信息：
 
 ```bash
 ./proxy-server.exe -mode server -v
@@ -343,7 +371,7 @@ type ProxyServer interface {
 
 ## 更新日志
 
-### v1.0.0 (2025-06-23)
+### v1.0.0 (2025-06-24)
 
 - ✅ 完成核心功能开发
 - ✅ 支持 SOCKS5 和 WebSocket 协议
@@ -351,3 +379,7 @@ type ProxyServer interface {
 - ✅ 支持多种选择策略和健康检查
 - ✅ 完善配置管理和文档
 - ✅ 修改 UpstreamType 为字符串类型
+- ✅ 实现 SOCKS5 服务端连接日志功能
+- ✅ 实现 WebSocket 服务端连接日志功能
+- ✅ 完善客户端模式使用指南
+- ✅ 添加详细的连接状态监控和日志输出
