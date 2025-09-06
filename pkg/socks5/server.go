@@ -27,20 +27,14 @@ type SOCKS5Server struct {
 // NewSOCKS5Server 创建新的SOCKS5服务端
 func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	var selector *upstream.UpstreamSelector
-	if config.Upstream != nil {
-		selector = upstream.NewUpstreamSelector(config.Upstream)
-	}
-	
-	// 创建认证用户映射
-	authUsers := make(map[string]string)
-	if config.Username != "" && config.Password != "" {
-		authUsers[config.Username] = config.Password
+	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
+		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
 	}
 	
 	return &SOCKS5Server{
 		config:    config,
 		shutdown:  make(chan struct{}),
-		authUsers: authUsers,
+		authUsers: config.AuthUsers,
 		selector:  selector,
 	}
 }
@@ -161,6 +155,11 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 
 // Close 关闭服务端
 func (s *SOCKS5Server) Close() error {
+	return s.Shutdown()
+}
+
+// Shutdown 优雅关闭服务端
+func (s *SOCKS5Server) Shutdown() error {
 	close(s.shutdown)
 	if s.listener != nil {
 		s.listener.Close()

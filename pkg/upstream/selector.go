@@ -69,8 +69,27 @@ func (s *UpstreamSelector) createSOCKS5Connection(targetHost string, targetPort 
 		return nil, fmt.Errorf("failed to connect via SOCKS5 proxy: %w", err)
 	}
 
-	// 返回一个模拟的net.Conn接口
-	return &SOCKS5ConnWrapper{client: client}, nil
+	// 创建一个管道来模拟net.Conn接口
+	clientConn, serverConn := net.Pipe()
+	
+	// 启动goroutine来处理数据转发
+	go func() {
+		defer clientConn.Close()
+		defer serverConn.Close()
+		
+		// 使用客户端的ForwardData方法进行数据转发
+		if socks5Client, ok := client.(interface {
+			ForwardData(net.Conn) error
+		}); ok {
+			err := socks5Client.ForwardData(serverConn)
+			if err != nil {
+				fmt.Printf("SOCKS5 forward data error: %v\n", err)
+			}
+		}
+	}()
+
+	// 返回客户端连接
+	return &SOCKS5ConnWrapper{client: client, conn: clientConn}, nil
 }
 
 // createWebSocketConnection 创建WebSocket代理连接
@@ -97,8 +116,27 @@ func (s *UpstreamSelector) createWebSocketConnection(targetHost string, targetPo
 		return nil, fmt.Errorf("failed to connect via WebSocket proxy: %w", err)
 	}
 
-	// 返回一个模拟的net.Conn接口
-	return &WebSocketConnWrapper{client: client}, nil
+	// 创建一个管道来模拟net.Conn接口
+	clientConn, serverConn := net.Pipe()
+	
+	// 启动goroutine来处理数据转发
+	go func() {
+		defer clientConn.Close()
+		defer serverConn.Close()
+		
+		// 使用客户端的ForwardData方法进行数据转发
+		if wsClient, ok := client.(interface {
+			ForwardData(net.Conn) error
+		}); ok {
+			err := wsClient.ForwardData(serverConn)
+			if err != nil {
+				fmt.Printf("WebSocket forward data error: %v\n", err)
+			}
+		}
+	}()
+
+	// 返回客户端连接
+	return &WebSocketConnWrapper{client: client, conn: clientConn}, nil
 }
 
 // getTimeout 获取超时时间
@@ -112,79 +150,146 @@ func (s *UpstreamSelector) getTimeout() time.Duration {
 // SOCKS5ConnWrapper SOCKS5客户端连接包装器，实现net.Conn接口
 type SOCKS5ConnWrapper struct {
 	client interfaces.ProxyClient
+	conn   net.Conn
+	closed bool
 }
 
 func (w *SOCKS5ConnWrapper) Read(b []byte) (n int, err error) {
-	// 这里需要实现从SOCKS5客户端读取数据的逻辑
-	// 由于SOCKS5客户端接口没有直接提供Read方法，我们需要重新设计
-	return 0, fmt.Errorf("SOCKS5ConnWrapper.Read not implemented")
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Read(b)
 }
 
 func (w *SOCKS5ConnWrapper) Write(b []byte) (n int, err error) {
-	// 这里需要实现向SOCKS5客户端写入数据的逻辑
-	return 0, fmt.Errorf("SOCKS5ConnWrapper.Write not implemented")
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Write(b)
 }
 
 func (w *SOCKS5ConnWrapper) Close() error {
+	if w.closed {
+		return nil
+	}
+	w.closed = true
+	if w.conn != nil {
+		return w.conn.Close()
+	}
 	return w.client.Close()
 }
 
 func (w *SOCKS5ConnWrapper) LocalAddr() net.Addr {
+	if w.conn != nil {
+		return w.conn.LocalAddr()
+	}
 	return &dummyAddr{addr: "local"}
 }
 
 func (w *SOCKS5ConnWrapper) RemoteAddr() net.Addr {
+	if w.conn != nil {
+		return w.conn.RemoteAddr()
+	}
 	return &dummyAddr{addr: "remote"}
 }
 
 func (w *SOCKS5ConnWrapper) SetDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetDeadline(t)
+	}
 	return nil
 }
 
 func (w *SOCKS5ConnWrapper) SetReadDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetReadDeadline(t)
+	}
 	return nil
 }
 
 func (w *SOCKS5ConnWrapper) SetWriteDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetWriteDeadline(t)
+	}
 	return nil
 }
 
 // WebSocketConnWrapper WebSocket客户端连接包装器，实现net.Conn接口
 type WebSocketConnWrapper struct {
 	client interfaces.ProxyClient
+	conn   net.Conn
+	closed bool
 }
 
 func (w *WebSocketConnWrapper) Read(b []byte) (n int, err error) {
-	// 这里需要实现从WebSocket客户端读取数据的逻辑
-	return 0, fmt.Errorf("WebSocketConnWrapper.Read not implemented")
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Read(b)
 }
 
 func (w *WebSocketConnWrapper) Write(b []byte) (n int, err error) {
-	// 这里需要实现向WebSocket客户端写入数据的逻辑
-	return 0, fmt.Errorf("WebSocketConnWrapper.Write not implemented")
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Write(b)
 }
 
 func (w *WebSocketConnWrapper) Close() error {
+	if w.closed {
+		return nil
+	}
+	w.closed = true
+	if w.conn != nil {
+		return w.conn.Close()
+	}
 	return w.client.Close()
 }
 
 func (w *WebSocketConnWrapper) LocalAddr() net.Addr {
+	if w.conn != nil {
+		return w.conn.LocalAddr()
+	}
 	return &dummyAddr{addr: "local"}
 }
 
 func (w *WebSocketConnWrapper) RemoteAddr() net.Addr {
+	if w.conn != nil {
+		return w.conn.RemoteAddr()
+	}
 	return &dummyAddr{addr: "remote"}
 }
 
 func (w *WebSocketConnWrapper) SetDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetDeadline(t)
+	}
 	return nil
 }
 
 func (w *WebSocketConnWrapper) SetReadDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetReadDeadline(t)
+	}
 	return nil
 }
 
 func (w *WebSocketConnWrapper) SetWriteDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetWriteDeadline(t)
+	}
 	return nil
 }
 

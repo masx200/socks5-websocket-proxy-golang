@@ -15,8 +15,8 @@ import (
 
 func init() {
 	// 注册WebSocket客户端创建函数
-	interfaces.RegisterClient("websocket", func(config interfaces.ClientConfig) interfaces.ProxyClient {
-		return NewWebSocketClient(config)
+	interfaces.RegisterClient("websocket", func(config interfaces.ClientConfig) (interfaces.ProxyClient, error) {
+		return NewWebSocketClient(config), nil
 	})
 }
 
@@ -73,7 +73,6 @@ func (c *WebSocketClient) Authenticate(username, password string) error {
 
 	// WebSocket认证通过HTTP Headers在连接时已经完成
 	// 这里只需要验证连接是否成功建立
-	authenticated := true
 	return nil
 }
 
@@ -81,10 +80,6 @@ func (c *WebSocketClient) Authenticate(username, password string) error {
 func (c *WebSocketClient) ForwardData(conn net.Conn) error {
 	if c.conn == nil {
 		return errors.New("connection not established")
-	}
-
-	if !authenticated {
-		return errors.New("not authenticated")
 	}
 
 	// 双向数据转发

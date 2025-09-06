@@ -30,8 +30,8 @@ type WebSocketServer struct {
 // NewWebSocketServer 创建新的WebSocket服务端
 func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 	var selector *upstream.UpstreamSelector
-	if config.EnableUpstream && config.UpstreamConfig != nil {
-		selector = upstream.NewUpstreamSelector(config.UpstreamConfig)
+	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
+		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
 	}
 	
 	return &WebSocketServer{
@@ -52,20 +52,20 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 }
 
 // Listen 开始监听连接
-func (s *WebSocketServer) Listen(address string) error {
+func (s *WebSocketServer) Listen() error {
 	// 创建HTTP路由
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleWebSocketConnection)
 
 	// 创建HTTP服务器
 	s.httpServer = &http.Server{
-		Addr:         address,
+		Addr:         s.config.ListenAddr,
 		Handler:      mux,
 		ReadTimeout:  s.config.Timeout,
 		WriteTimeout: s.config.Timeout,
 	}
 
-	fmt.Printf("WebSocket server listening on %s\n", address)
+	fmt.Printf("WebSocket server listening on %s\n", s.config.ListenAddr)
 
 	s.wg.Add(1)
 	go func() {
@@ -304,4 +304,11 @@ func (w *websocketNetConn) SetReadDeadline(t time.Time) error {
 
 func (w *websocketNetConn) SetWriteDeadline(t time.Time) error {
 	return w.conn.SetWriteDeadline(t)
+}
+
+// 注册WebSocket服务端创建函数
+func init() {
+	interfaces.RegisterServer("websocket", func(config interfaces.ServerConfig) (interfaces.ProxyServer, error) {
+		return NewWebSocketServer(config), nil
+	})
 }
