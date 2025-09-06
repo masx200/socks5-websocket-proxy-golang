@@ -106,13 +106,22 @@ func (s *SOCKS5Server) acceptConnections() {
 func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	defer conn.Close()
 
+	clientAddr := conn.RemoteAddr().String()
+	fmt.Printf("SOCKS5 client connected from %s\n", clientAddr)
+
 	// 设置超时
 	if s.config.Timeout > 0 {
 		conn.SetDeadline(time.Now().Add(s.config.Timeout))
 	}
 
 	// 使用github.com/armon/go-socks5库处理连接
-	return s.server.ServeConn(conn)
+	err := s.server.ServeConn(conn)
+	if err != nil {
+		fmt.Printf("SOCKS5 connection failed for client %s: %v\n", clientAddr, err)
+	} else {
+		fmt.Printf("SOCKS5 connection completed successfully for client %s\n", clientAddr)
+	}
+	return err
 }
 
 // Authenticate 验证用户名密码

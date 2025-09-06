@@ -78,30 +78,35 @@ func (s *WebSocketServer) Listen() error {
 
 // handleWebSocketConnection 处理WebSocket连接
 func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
+	clientAddr := r.RemoteAddr
+	fmt.Printf("WebSocket connection attempt from %s\n", clientAddr)
+
 	// 从HTTP Headers中解析认证信息
 	username, password, targetHost, targetPort, err := s.parseAuthInfo(r)
 	if err != nil {
-		fmt.Printf("auth info parse error: %v\n", err)
+		fmt.Printf("WebSocket auth info parse error from %s: %v\n", clientAddr, err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// 验证用户名密码
 	if !s.Authenticate(username, password) {
-		fmt.Printf("authentication failed for user: %s\n", username)
+		fmt.Printf("WebSocket authentication failed for user %s from %s\n", username, clientAddr)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	fmt.Printf("WebSocket authentication successful for user %s from %s\n", username, clientAddr)
+
 	// 升级HTTP连接为WebSocket连接
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("WebSocket upgrade error: %v\n", err)
+		fmt.Printf("WebSocket upgrade failed for client %s: %v\n", clientAddr, err)
 		return
 	}
 	defer conn.Close()
 
-	fmt.Printf("WebSocket connection established for target %s:%d\n", targetHost, targetPort)
+	fmt.Printf("WebSocket connection established successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
 
 	// 处理WebSocket连接
 	s.wg.Add(1)
@@ -112,7 +117,9 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 
 	// 使用统一的连接处理逻辑
 	if err := s.HandleConnection(wsConn); err != nil {
-		fmt.Printf("connection handling error: %v\n", err)
+		fmt.Printf("WebSocket connection handling failed for target %s:%d from %s: %v\n", targetHost, targetPort, clientAddr, err)
+	} else {
+		fmt.Printf("WebSocket connection completed successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
 	}
 }
 
