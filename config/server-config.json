@@ -1,6 +1,6 @@
 {
   "listen_addr": ":1080",
-  "protocol": "socks5",
+  "protocol": "websocket",
   "timeout": 60000000000,
   "auth_users": {
     "admin": "password123",
