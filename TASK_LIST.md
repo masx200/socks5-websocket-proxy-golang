@@ -41,6 +41,7 @@
   - [x] 认证验证
   - [x] 数据转发
   - [x] 集成github.com/armon/go-socks5库
+  - [x] 删除后备方案代码
 
 ### 4. WebSocket组件实现
 
@@ -107,3 +108,4 @@
 - 2025-06-23：修改UpstreamType从数字类型改为字符串类型，更新配置文件中的type字段为字符串格式
 - 2025-06-23：编写完整的README.md文档，包含项目概述、功能特性、安装使用、配置说明、开发指南等内容
 - 2025-06-24：修改SOCKS5服务端使用github.com/armon/go-socks5库，修复编译错误
+- 2025-06-24：删除SOCKS5服务端后备方案代码，完全依赖github.com/armon/go-socks5库

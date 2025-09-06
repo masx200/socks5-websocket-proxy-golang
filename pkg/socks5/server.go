@@ -112,41 +112,7 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	}
 
 	// 使用github.com/armon/go-socks5库处理连接
-	if s.server != nil {
-		return s.server.ServeConn(conn)
-	}
-
-	// 如果server为nil，使用原始实现作为后备
-	// SOCKS5握手
-	if err := s.handleHandshake(conn); err != nil {
-		fmt.Printf("handshake error: %v\n", err)
-		return err
-	}
-
-	// 处理连接请求
-	targetHost, targetPort, err := s.handleConnectRequest(conn)
-	if err != nil {
-		fmt.Printf("connect request error: %v\n", err)
-		return err
-	}
-
-	fmt.Printf("Connecting to target %s:%d\n", targetHost, targetPort)
-
-	// 选择上游连接
-	upstreamConn, err := s.SelectUpstreamConnection(targetHost, targetPort)
-	if err != nil {
-		fmt.Printf("failed to connect to target: %v\n", err)
-		return err
-	}
-	defer upstreamConn.Close()
-
-	// 发送成功响应
-	if err := s.sendConnectResponse(conn, net.ParseIP(targetHost) != nil); err != nil {
-		return err
-	}
-
-	// 开始数据转发
-	return s.forwardData(conn, upstreamConn)
+	return s.server.ServeConn(conn)
 }
 
 // Authenticate 验证用户名密码
@@ -189,36 +155,6 @@ func (s *SOCKS5Server) Shutdown() error {
 		s.listener.Close()
 	}
 	s.wg.Wait()
-	return nil
-}
-
-// handleHandshake 处理SOCKS5握手 (后备实现)
-func (s *SOCKS5Server) handleHandshake(conn net.Conn) error {
-	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
-	return nil
-}
-
-// handleUsernamePasswordAuth 处理用户名密码认证 (后备实现)
-func (s *SOCKS5Server) handleUsernamePasswordAuth(conn net.Conn) error {
-	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
-	return nil
-}
-
-// handleConnectRequest 处理连接请求 (后备实现)
-func (s *SOCKS5Server) handleConnectRequest(conn net.Conn) (string, int, error) {
-	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
-	return "", 0, nil
-}
-
-// sendConnectResponse 发送连接响应 (后备实现)
-func (s *SOCKS5Server) sendConnectResponse(conn net.Conn, isIP bool) error {
-	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
-	return nil
-}
-
-// forwardData 转发数据 (后备实现)
-func (s *SOCKS5Server) forwardData(clientConn, targetConn net.Conn) error {
-	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
 	return nil
 }
 
