@@ -126,28 +126,41 @@ func (cw *ConfigWatcher) hasFileChanged() bool {
 
 // handleConfigChange 处理配置文件变化
 func (cw *ConfigWatcher) handleConfigChange() {
-	log.Printf("[CONFIG-WATCHER] Detected config file change, reloading...")
+	// 防抖处理，避免频繁重载
+	time.Sleep(500 * time.Millisecond)
+
+	// 检查文件是否真的发生了变化
+	if !cw.hasFileChanged() {
+		return
+	}
+
+	log.Printf("[CONFIG-WATCHER] 配置文件 %s 发生变化，开始重新加载...", cw.configFile)
 
 	// 重新加载配置
-	config, err := LoadConfig(cw.configFile)
+	config, err := interfaces.LoadConfig(cw.configFile)
 	if err != nil {
-		log.Printf("[CONFIG-WATCHER] Failed to load new config: %v", err)
+		log.Printf("[CONFIG-WATCHER] 加载配置失败: %v", err)
 		return
 	}
 
 	// 验证配置
-	if err := ValidateConfig(config); err != nil {
-		log.Printf("[CONFIG-WATCHER] Invalid config: %v", err)
+	if err := interfaces.ValidateConfig(config); err != nil {
+		log.Printf("[CONFIG-WATCHER] 配置验证失败: %v", err)
 		return
 	}
 
 	// 重新加载配置到服务器
 	if err := cw.server.ReloadConfig(config); err != nil {
-		log.Printf("[CONFIG-WATCHER] Failed to reload config: %v", err)
+		log.Printf("[CONFIG-WATCHER] 重载配置失败: %v", err)
 		return
 	}
 
-	log.Printf("[CONFIG-WATCHER] Configuration reloaded successfully")
+	// 更新最后修改时间
+	if info, err := os.Stat(cw.configFile); err == nil {
+		cw.lastMod = info.ModTime()
+	}
+
+	log.Printf("[CONFIG-WATCHER] 配置重载成功")
 }
 
 // LoadConfig 加载配置文件

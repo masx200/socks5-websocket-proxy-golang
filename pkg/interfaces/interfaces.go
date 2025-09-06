@@ -1,8 +1,11 @@
 package interfaces
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"time"
 )
 
@@ -99,4 +102,47 @@ func CreateServer(protocol string, config ServerConfig) (ProxyServer, error) {
 		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
 	}
 	return createFunc(config)
+}
+
+// LoadConfig 从文件加载配置
+func LoadConfig(configFile string) (ServerConfig, error) {
+	data, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return ServerConfig{}, fmt.Errorf("读取配置文件失败: %v", err)
+	}
+
+	var config ServerConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return ServerConfig{}, fmt.Errorf("解析配置文件失败: %v", err)
+	}
+
+	return config, nil
+}
+
+// ValidateConfig 验证配置
+func ValidateConfig(config ServerConfig) error {
+	if config.ListenAddr == "" {
+		return fmt.Errorf("监听地址不能为空")
+	}
+
+	if config.Timeout <= 0 {
+		return fmt.Errorf("超时时间必须大于0")
+	}
+
+	// 验证上游配置
+	if config.EnableUpstream {
+		for i, upstream := range config.UpstreamConfig {
+			if upstream.Type == "" {
+				return fmt.Errorf("上游配置[%d]: 类型不能为空", i)
+			}
+			if upstream.ProxyAddress == "" && upstream.Type != "direct" {
+				return fmt.Errorf("上游配置[%d]: 代理地址不能为空", i)
+			}
+			if upstream.Timeout <= 0 {
+				return fmt.Errorf("上游配置[%d]: 超时时间必须大于0", i)
+			}
+		}
+	}
+
+	return nil
 }
