@@ -13,6 +13,13 @@ import (
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 )
 
+func init() {
+	// 注册WebSocket客户端创建函数
+	interfaces.RegisterClient("websocket", func(config interfaces.ClientConfig) interfaces.ProxyClient {
+		return NewWebSocketClient(config)
+	})
+}
+
 // WebSocketClient WebSocket客户端实现
 type WebSocketClient struct {
 	config        interfaces.ClientConfig
@@ -66,7 +73,7 @@ func (c *WebSocketClient) Authenticate(username, password string) error {
 
 	// WebSocket认证通过HTTP Headers在连接时已经完成
 	// 这里只需要验证连接是否成功建立
-	c.authenticated = true
+	authenticated := true
 	return nil
 }
 
@@ -76,7 +83,7 @@ func (c *WebSocketClient) ForwardData(conn net.Conn) error {
 		return errors.New("connection not established")
 	}
 
-	if !c.authenticated {
+	if !authenticated {
 		return errors.New("not authenticated")
 	}
 

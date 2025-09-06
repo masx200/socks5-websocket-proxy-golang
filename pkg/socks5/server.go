@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
 )
 
 // SOCKS5Server SOCKS5服务端实现
@@ -20,26 +21,39 @@ type SOCKS5Server struct {
 	shutdown  chan struct{}
 	wg        sync.WaitGroup
 	authUsers map[string]string
+	selector  *upstream.UpstreamSelector
 }
 
 // NewSOCKS5Server 创建新的SOCKS5服务端
 func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
+	var selector *upstream.UpstreamSelector
+	if config.Upstream != nil {
+		selector = upstream.NewUpstreamSelector(config.Upstream)
+	}
+	
+	// 创建认证用户映射
+	authUsers := make(map[string]string)
+	if config.Username != "" && config.Password != "" {
+		authUsers[config.Username] = config.Password
+	}
+	
 	return &SOCKS5Server{
 		config:    config,
 		shutdown:  make(chan struct{}),
-		authUsers: config.AuthUsers,
+		authUsers: authUsers,
+		selector:  selector,
 	}
 }
 
 // Listen 开始监听连接
-func (s *SOCKS5Server) Listen(address string) error {
+func (s *SOCKS5Server) Listen() error {
 	var err error
-	s.listener, err = net.Listen("tcp", address)
+	s.listener, err = net.Listen("tcp", s.config.ListenAddr)
 	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", address, err)
+		return fmt.Errorf("failed to listen on %s: %w", s.config.ListenAddr, err)
 	}
 
-	fmt.Printf("SOCKS5 server listening on %s\n", address)
+	fmt.Printf("SOCKS5 server listening on %s\n", s.config.ListenAddr)
 
 	s.wg.Add(1)
 	go s.acceptConnections()
@@ -101,14 +115,7 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	fmt.Printf("Connecting to target %s:%d\n", targetHost, targetPort)
 
 	// 选择上游连接
-	var upstreamConn net.Conn
-	if s.config.EnableUpstream && s.config.UpstreamConfig != nil {
-		upstreamConn, err = s.SelectUpstreamConnection(targetHost, targetPort)
-	} else {
-		// 默认直连
-		upstreamConn, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	}
-
+	upstreamConn, err := s.SelectUpstreamConnection(targetHost, targetPort)
 	if err != nil {
 		fmt.Printf("failed to connect to target: %v\n", err)
 		return err
@@ -126,7 +133,7 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 
 // Authenticate 验证用户名密码
 func (s *SOCKS5Server) Authenticate(username, password string) bool {
-	if s.authUsers == nil {
+	if s.authUsers == nil || len(s.authUsers) == 0 {
 		return true // 如果没有配置用户，则允许所有连接
 	}
 
@@ -140,27 +147,20 @@ func (s *SOCKS5Server) Authenticate(username, password string) bool {
 
 // SelectUpstreamConnection 选择上游连接
 func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
-	if s.config.UpstreamConfig == nil {
-		// 默认直连
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
+	if s.selector != nil {
+		return s.selector.SelectConnection(targetHost, targetPort)
 	}
-
-	switch s.config.UpstreamConfig.Type {
-	case interfaces.UpstreamDirect:
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	case interfaces.UpstreamSOCKS5:
-		// TODO: 实现SOCKS5上游代理
-		return nil, errors.New("SOCKS5 upstream not implemented yet")
-	case interfaces.UpstreamWebSocket:
-		// TODO: 实现WebSocket上游代理
-		return nil, errors.New("WebSocket upstream not implemented yet")
-	default:
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
+	
+	// 默认直连
+	timeout := s.config.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
 	}
+	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), timeout)
 }
 
-// Shutdown 优雅关闭服务端
-func (s *SOCKS5Server) Shutdown() error {
+// Close 关闭服务端
+func (s *SOCKS5Server) Close() error {
 	close(s.shutdown)
 	if s.listener != nil {
 		s.listener.Close()
@@ -376,4 +376,11 @@ func (s *SOCKS5Server) forwardData(clientConn, targetConn net.Conn) error {
 	}()
 
 	return <-done
+}
+
+// 注册SOCKS5服务端创建函数
+func init() {
+	interfaces.RegisterServer("socks5", func(config interfaces.ServerConfig) (interfaces.ProxyServer, error) {
+		return NewSOCKS5Server(config), nil
+	})
 }

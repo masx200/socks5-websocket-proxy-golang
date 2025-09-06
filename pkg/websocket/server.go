@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
 )
 
 // WebSocketServer WebSocket服务端实现
@@ -23,10 +24,16 @@ type WebSocketServer struct {
 	shutdown   chan struct{}
 	wg         sync.WaitGroup
 	authUsers  map[string]string
+	selector   *upstream.UpstreamSelector
 }
 
 // NewWebSocketServer 创建新的WebSocket服务端
 func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
+	var selector *upstream.UpstreamSelector
+	if config.EnableUpstream && config.UpstreamConfig != nil {
+		selector = upstream.NewUpstreamSelector(config.UpstreamConfig)
+	}
+	
 	return &WebSocketServer{
 		config:   config,
 		shutdown: make(chan struct{}),
@@ -40,6 +47,7 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 			},
 		},
 		authUsers: config.AuthUsers,
+		selector:  selector,
 	}
 }
 
@@ -102,7 +110,7 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 	defer s.wg.Done()
 
 	// 创建包装的net.Conn
-	wsConn := &websocketNetConn{conn: conn}
+	wsConn := &websocketNetConn{conn: conn, targetHost: targetHost, targetPort: targetPort}
 
 	// 使用统一的连接处理逻辑
 	if err := s.HandleConnection(wsConn); err != nil {
@@ -112,27 +120,19 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 
 // HandleConnection 处理客户端连接（实现ProxyServer接口）
 func (s *WebSocketServer) HandleConnection(conn net.Conn) error {
-	// 从连接中获取目标信息（对于WebSocket，这些信息已经在握手时获取）
-	// 这里需要从连接的上下文中获取，或者通过其他方式传递
-	// 暂时使用默认值，实际实现需要根据具体需求调整
-	targetHost := "example.com" // 应该从连接上下文中获取
-	targetPort := 80            // 应该从连接上下文中获取
+	// 从连接中获取目标信息
+	wsConn, ok := conn.(*websocketNetConn)
+	if !ok {
+		return errors.New("invalid connection type")
+	}
+	
+	targetHost := wsConn.targetHost
+	targetPort := wsConn.targetPort
 
 	// 选择上游连接
-	var upstreamConn net.Conn
-	if s.config.EnableUpstream && s.config.UpstreamConfig != nil {
-		var err error
-		upstreamConn, err = s.SelectUpstreamConnection(targetHost, targetPort)
-		if err != nil {
-			return fmt.Errorf("failed to select upstream connection: %w", err)
-		}
-	} else {
-		// 默认直连
-		var err error
-		upstreamConn, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-		if err != nil {
-			return fmt.Errorf("failed to connect to target: %w", err)
-		}
+	upstreamConn, err := s.SelectUpstreamConnection(targetHost, targetPort)
+	if err != nil {
+		return fmt.Errorf("failed to select upstream connection: %w", err)
 	}
 	defer upstreamConn.Close()
 
@@ -156,23 +156,12 @@ func (s *WebSocketServer) Authenticate(username, password string) bool {
 
 // SelectUpstreamConnection 选择上游连接
 func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
-	if s.config.UpstreamConfig == nil {
-		// 默认直连
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
+	if s.selector != nil {
+		return s.selector.SelectConnection(targetHost, targetPort)
 	}
-
-	switch s.config.UpstreamConfig.Type {
-	case interfaces.UpstreamDirect:
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	case interfaces.UpstreamSOCKS5:
-		// TODO: 实现SOCKS5上游代理
-		return nil, errors.New("SOCKS5 upstream not implemented yet")
-	case interfaces.UpstreamWebSocket:
-		// TODO: 实现WebSocket上游代理
-		return nil, errors.New("WebSocket upstream not implemented yet")
-	default:
-		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	}
+	
+	// 默认直连
+	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
 }
 
 // Shutdown 优雅关闭服务端
@@ -259,6 +248,8 @@ func (s *WebSocketServer) forwardData(clientConn, targetConn net.Conn) error {
 type websocketNetConn struct {
 	conn       *websocket.Conn
 	readBuffer []byte
+	targetHost string
+	targetPort int
 }
 
 func (w *websocketNetConn) Read(b []byte) (n int, err error) {

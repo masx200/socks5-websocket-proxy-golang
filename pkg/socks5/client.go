@@ -176,3 +176,10 @@ func (c *SOCKS5Client) buildAuthRequest(username, password string) []byte {
 
 	return buf.Bytes()
 }
+
+// 注册SOCKS5客户端创建函数
+func init() {
+	interfaces.RegisterClient("socks5", func(config interfaces.ClientConfig) (interfaces.ProxyClient, error) {
+		return NewSOCKS5Client(config), nil
+	})
+}

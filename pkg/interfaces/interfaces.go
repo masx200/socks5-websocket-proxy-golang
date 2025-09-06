@@ -1,67 +1,96 @@
 package interfaces
 
 import (
+	"fmt"
 	"net"
 	"time"
 )
 
-// UpstreamType 定义上游连接类型
-type UpstreamType string
+// UpstreamType 上游连接类型
+type UpstreamType int
 
 const (
-	UpstreamDirect    UpstreamType = "direct"    // TCP直连
-	UpstreamWebSocket UpstreamType = "websocket" // WebSocket代理
-	UpstreamSOCKS5    UpstreamType = "socks5"    // SOCKS5代理
+	UpstreamDirect UpstreamType = iota // TCP直连
+	UpstreamSOCKS5                      // SOCKS5代理
+	UpstreamWebSocket                   // WebSocket代理
 )
 
 // UpstreamConfig 上游连接配置
 type UpstreamConfig struct {
-	Type          UpstreamType  // 连接类型
-	ProxyAddress  string        // 代理地址（当Type为websocket或socks5时需要）
-	ProxyUsername string        // 代理用户名（可选）
-	ProxyPassword string        // 代理密码（可选）
-	Timeout       time.Duration // 连接超时时间
+	Type          UpstreamType // 上游连接类型
+	ProxyAddress  string       // 代理服务器地址
+	ProxyUsername string       // 代理用户名
+	ProxyPassword string       // 代理密码
+	Timeout       time.Duration // 超时时间
 }
 
 // ClientConfig 客户端配置
 type ClientConfig struct {
-	Username   string
-	Password   string
-	ServerAddr string
-	Protocol   string // "socks5" or "websocket"
-	Timeout    time.Duration
+	Username   string        // 用户名
+	Password   string        // 密码
+	ServerAddr string        // 服务器地址
+	Protocol   string        // 协议类型
+	Timeout    time.Duration // 超时时间
 }
 
 // ServerConfig 服务端配置
 type ServerConfig struct {
-	ListenAddr     string            // 监听地址
-	AuthUsers      map[string]string // username:password
-	Protocol       string            // "socks5" or "websocket"
-	Timeout        time.Duration     // 连接超时时间
-	UpstreamConfig *UpstreamConfig   // 上游连接配置（可选，未配置时使用直连）
-	EnableUpstream bool              // 是否启用上游连接选择器
+	ListenAddr   string        // 监听地址
+	Username     string        // 用户名
+	Password     string        // 密码
+	Upstream     *UpstreamConfig // 上游连接配置
+	Timeout      time.Duration // 超时时间
 }
 
-// ProxyClient 统一客户端接口
+// ProxyClient 代理客户端接口
 type ProxyClient interface {
-	Connect(targetHost string, targetPort int) error
-	Authenticate(username, password string) error
-	ForwardData(conn net.Conn) error
+	Connect(host string, port int) error
 	Close() error
 }
 
-// ProxyServer 统一服务端接口
+// ProxyServer 代理服务端接口
 type ProxyServer interface {
-	Listen(address string) error
-	HandleConnection(conn net.Conn) error
-	Authenticate(username, password string) bool
-	// 上游连接选择器：根据配置选择连接上游TCP连接的方式
+	Listen() error
+	Close() error
 	SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error)
-	Shutdown() error
 }
 
-// CreateClient 客户端创建工厂函数
-type CreateClientFunc func(protocol string, config ClientConfig) (ProxyClient, error)
+// CreateClientFunc 客户端创建函数类型
+type CreateClientFunc func(config ClientConfig) (ProxyClient, error)
 
-// CreateServer 服务端创建工厂函数
-type CreateServerFunc func(protocol string, config ServerConfig) (ProxyServer, error)
+// CreateServerFunc 服务端创建函数类型
+type CreateServerFunc func(config ServerConfig) (ProxyServer, error)
+
+// 客户端创建函数映射
+var clientCreateFuncs = make(map[string]CreateClientFunc)
+
+// 服务端创建函数映射
+var serverCreateFuncs = make(map[string]CreateServerFunc)
+
+// RegisterClient 注册客户端创建函数
+func RegisterClient(protocol string, createFunc CreateClientFunc) {
+	clientCreateFuncs[protocol] = createFunc
+}
+
+// RegisterServer 注册服务端创建函数
+func RegisterServer(protocol string, createFunc CreateServerFunc) {
+	serverCreateFuncs[protocol] = createFunc
+}
+
+// CreateClient 创建客户端实例
+func CreateClient(protocol string, config ClientConfig) (ProxyClient, error) {
+	createFunc, exists := clientCreateFuncs[protocol]
+	if !exists {
+		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
+	}
+	return createFunc(config)
+}
+
+// CreateServer 创建服务端实例
+func CreateServer(protocol string, config ServerConfig) (ProxyServer, error) {
+	createFunc, exists := serverCreateFuncs[protocol]
+	if !exists {
+		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
+	}
+	return createFunc(config)
+}
