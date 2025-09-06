@@ -35,14 +35,16 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 
 	// 创建自定义日志记录器
 	logger := log.New(os.Stdout, "[SOCKS5-LIB] ", log.LstdFlags)
-	
+
 	// 创建SOCKS5服务器配置
 	socks5Config := &socks5.Config{
 		AuthMethods: []socks5.Authenticator{},
 		Logger:      logger,
-		Dial :func(ctx context.Context, network, addr string) (net.Conn, error){
+		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dailer := net.Dialer{}
 
-			return net.DialContext(ctx, network, addr)
+			log.Printf("Dial %s %s", network, addr)
+			return dailer.DialContext(ctx, network, addr)
 		},
 	}
 
@@ -80,7 +82,7 @@ func (s *SOCKS5Server) Listen() error {
 	}
 
 	fmt.Printf("[SOCKS5-SERVER] Server started successfully, listening on %s\n", s.config.ListenAddr)
-	fmt.Printf("[SOCKS5-SERVER] Authentication enabled: %t (%d users configured)\n", 
+	fmt.Printf("[SOCKS5-SERVER] Authentication enabled: %t (%d users configured)\n",
 		len(s.authUsers) > 0, len(s.authUsers))
 	fmt.Printf("[SOCKS5-SERVER] Upstream selector enabled: %t\n", s.config.EnableUpstream)
 
@@ -111,7 +113,7 @@ func (s *SOCKS5Server) acceptConnections() {
 					continue
 				}
 			}
-			
+
 			connectionCount++
 			clientAddr := conn.RemoteAddr().String()
 			fmt.Printf("[SOCKS5-SERVER] New connection accepted from %s (total: %d)\n", clientAddr, connectionCount)
@@ -154,7 +156,7 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	// 使用github.com/armon/go-socks5库处理连接
 	err := s.server.ServeConn(conn)
 	duration := time.Since(startTime)
-	
+
 	if err != nil {
 		fmt.Printf("[SOCKS5-CONN] Connection failed for client %s after %v: %v\n", clientAddr, duration, err)
 	} else {
@@ -188,7 +190,7 @@ func (s *SOCKS5Server) Authenticate(username, password string) bool {
 // SelectUpstreamConnection 选择上游连接
 func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
 	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
-	
+
 	if s.selector != nil {
 		fmt.Printf("[SOCKS5-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
 		conn, err := s.selector.SelectConnection(targetHost, targetPort)
@@ -205,7 +207,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
-	
+
 	fmt.Printf("[SOCKS5-UPSTREAM] Using direct connection for target %s (timeout: %v)\n", targetAddr, timeout)
 	conn, err := net.DialTimeout("tcp", targetAddr, timeout)
 	if err != nil {
