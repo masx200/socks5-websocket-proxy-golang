@@ -468,6 +468,9 @@ func (s *UpstreamSelector) SelectConnection(targetHost string, targetPort int) (
 // createDirectConnection 创建TCP直连
 func (s *UpstreamSelector) createDirectConnection(targetHost string, targetPort int) (net.Conn, error) {
 	timeout := s.getTimeout()
+	if net.ParseIP(targetHost) != nil && net.ParseIP(targetHost).To4() == nil {
+		return net.DialTimeout("tcp", fmt.Sprintf("[%s]:%d", targetHost, targetPort), timeout)
+	}
 	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), timeout)
 }
 
