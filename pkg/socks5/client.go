@@ -6,21 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"time"
 
-	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"golang.org/x/net/proxy"
 )
 
 // SOCKS5Client SOCKS5客户端实现
 type SOCKS5Client struct {
-	config        proxy.ClientConfig
+	config        interfaces.ClientConfig
 	conn          net.Conn
 	authenticated bool
 }
 
 // NewSOCKS5Client 创建新的SOCKS5客户端
-func NewSOCKS5Client(config proxy.ClientConfig) *SOCKS5Client {
+func NewSOCKS5Client(config interfaces.ClientConfig) *SOCKS5Client {
 	return &SOCKS5Client{
 		config: config,
 	}

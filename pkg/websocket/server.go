@@ -8,17 +8,16 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 )
 
 // WebSocketServer WebSocket服务端实现
 type WebSocketServer struct {
-	config     proxy.ServerConfig
+	config     interfaces.ServerConfig
 	httpServer *http.Server
 	upgrader   *websocket.Upgrader
 	shutdown   chan struct{}
@@ -27,7 +26,7 @@ type WebSocketServer struct {
 }
 
 // NewWebSocketServer 创建新的WebSocket服务端
-func NewWebSocketServer(config proxy.ServerConfig) *WebSocketServer {
+func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 	return &WebSocketServer{
 		config:   config,
 		shutdown: make(chan struct{}),
@@ -163,12 +162,12 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 	}
 
 	switch s.config.UpstreamConfig.Type {
-	case proxy.UpstreamDirect:
+	case interfaces.UpstreamDirect:
 		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	case proxy.UpstreamSOCKS5:
+	case interfaces.UpstreamSOCKS5:
 		// TODO: 实现SOCKS5上游代理
 		return nil, errors.New("SOCKS5 upstream not implemented yet")
-	case proxy.UpstreamWebSocket:
+	case interfaces.UpstreamWebSocket:
 		// TODO: 实现WebSocket上游代理
 		return nil, errors.New("WebSocket upstream not implemented yet")
 	default:

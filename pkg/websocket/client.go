@@ -1,31 +1,28 @@
 package websocket
 
 import (
-	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 )
 
 // WebSocketClient WebSocket客户端实现
 type WebSocketClient struct {
-	config        proxy.ClientConfig
+	config        interfaces.ClientConfig
 	conn          *websocket.Conn
 	httpClient    *http.Client
 	authenticated bool
 }
 
 // NewWebSocketClient 创建新的WebSocket客户端
-func NewWebSocketClient(config proxy.ClientConfig) *WebSocketClient {
+func NewWebSocketClient(config interfaces.ClientConfig) *WebSocketClient {
 	return &WebSocketClient{
 		config:     config,
 		httpClient: &http.Client{Timeout: config.Timeout},
@@ -50,7 +47,6 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.Timeout,
-		NetDial:          c.httpClient.Transport.Dial,
 	}
 
 	conn, _, err := dialer.Dial(wsURL, headers)

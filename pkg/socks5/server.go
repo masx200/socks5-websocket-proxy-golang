@@ -2,7 +2,6 @@ package socks5
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -11,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 )
 
 // SOCKS5Server SOCKS5服务端实现
 type SOCKS5Server struct {
-	config    proxy.ServerConfig
+	config    interfaces.ServerConfig
 	listener  net.Listener
 	shutdown  chan struct{}
 	wg        sync.WaitGroup
@@ -24,7 +23,7 @@ type SOCKS5Server struct {
 }
 
 // NewSOCKS5Server 创建新的SOCKS5服务端
-func NewSOCKS5Server(config proxy.ServerConfig) *SOCKS5Server {
+func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	return &SOCKS5Server{
 		config:    config,
 		shutdown:  make(chan struct{}),
@@ -147,12 +146,12 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 	}
 
 	switch s.config.UpstreamConfig.Type {
-	case proxy.UpstreamDirect:
+	case interfaces.UpstreamDirect:
 		return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
-	case proxy.UpstreamSOCKS5:
+	case interfaces.UpstreamSOCKS5:
 		// TODO: 实现SOCKS5上游代理
 		return nil, errors.New("SOCKS5 upstream not implemented yet")
-	case proxy.UpstreamWebSocket:
+	case interfaces.UpstreamWebSocket:
 		// TODO: 实现WebSocket上游代理
 		return nil, errors.New("WebSocket upstream not implemented yet")
 	default:
