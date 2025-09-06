@@ -10,17 +10,17 @@ import (
 type UpstreamType int
 
 const (
-	UpstreamDirect UpstreamType = iota // TCP直连
-	UpstreamSOCKS5                      // SOCKS5代理
-	UpstreamWebSocket                   // WebSocket代理
+	UpstreamDirect    UpstreamType = iota // TCP直连
+	UpstreamSOCKS5                        // SOCKS5代理
+	UpstreamWebSocket                     // WebSocket代理
 )
 
 // UpstreamConfig 上游连接配置
 type UpstreamConfig struct {
-	Type          UpstreamType // 上游连接类型
-	ProxyAddress  string       // 代理服务器地址
-	ProxyUsername string       // 代理用户名
-	ProxyPassword string       // 代理密码
+	Type          UpstreamType  // 上游连接类型
+	ProxyAddress  string        // 代理服务器地址
+	ProxyUsername string        // 代理用户名
+	ProxyPassword string        // 代理密码
 	Timeout       time.Duration // 超时时间
 }
 
@@ -39,7 +39,7 @@ type ServerConfig struct {
 	AuthUsers      map[string]string // 认证用户映射
 	Protocol       string            // 协议类型
 	Timeout        time.Duration     // 超时时间
-	UpstreamConfig []UpstreamConfig   // 上游连接配置列表
+	UpstreamConfig []UpstreamConfig  // 上游连接配置列表
 	EnableUpstream bool              // 是否启用上游连接
 }
 

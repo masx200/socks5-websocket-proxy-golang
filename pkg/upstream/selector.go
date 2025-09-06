@@ -71,12 +71,12 @@ func (s *UpstreamSelector) createSOCKS5Connection(targetHost string, targetPort 
 
 	// 创建一个管道来模拟net.Conn接口
 	clientConn, serverConn := net.Pipe()
-	
+
 	// 启动goroutine来处理数据转发
 	go func() {
 		defer clientConn.Close()
 		defer serverConn.Close()
-		
+
 		// 使用客户端的ForwardData方法进行数据转发
 		if socks5Client, ok := client.(interface {
 			ForwardData(net.Conn) error
@@ -118,12 +118,12 @@ func (s *UpstreamSelector) createWebSocketConnection(targetHost string, targetPo
 
 	// 创建一个管道来模拟net.Conn接口
 	clientConn, serverConn := net.Pipe()
-	
+
 	// 启动goroutine来处理数据转发
 	go func() {
 		defer clientConn.Close()
 		defer serverConn.Close()
-		
+
 		// 使用客户端的ForwardData方法进行数据转发
 		if wsClient, ok := client.(interface {
 			ForwardData(net.Conn) error

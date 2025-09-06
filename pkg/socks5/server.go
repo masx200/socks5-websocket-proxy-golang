@@ -30,7 +30,7 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
 		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
 	}
-	
+
 	return &SOCKS5Server{
 		config:    config,
 		shutdown:  make(chan struct{}),
@@ -144,7 +144,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 	if s.selector != nil {
 		return s.selector.SelectConnection(targetHost, targetPort)
 	}
-	
+
 	// 默认直连
 	timeout := s.config.Timeout
 	if timeout == 0 {

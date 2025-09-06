@@ -78,7 +78,7 @@ func startServer(protocol, addr, username, password string, timeout time.Duratio
 	}
 
 	// 启动服务端
-	if err := server.Listen(addr); err != nil {
+	if err := server.Listen(); err != nil {
 		log.Fatal("启动服务端失败:", err)
 	}
 

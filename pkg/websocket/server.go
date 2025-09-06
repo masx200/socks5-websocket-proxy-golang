@@ -33,7 +33,7 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
 		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
 	}
-	
+
 	return &WebSocketServer{
 		config:   config,
 		shutdown: make(chan struct{}),
@@ -125,7 +125,7 @@ func (s *WebSocketServer) HandleConnection(conn net.Conn) error {
 	if !ok {
 		return errors.New("invalid connection type")
 	}
-	
+
 	targetHost := wsConn.targetHost
 	targetPort := wsConn.targetPort
 
@@ -159,7 +159,7 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 	if s.selector != nil {
 		return s.selector.SelectConnection(targetHost, targetPort)
 	}
-	
+
 	// 默认直连
 	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
 }
