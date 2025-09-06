@@ -64,7 +64,8 @@ func (s *WebSocketServer) Listen() error {
 	}
 
 	fmt.Printf("WebSocket server listening on %s\n", s.config.ListenAddr)
-
+	fmt.Printf("[websocket-SERVER] Authentication enabled: %t (%d users configured)\n",
+		len(s.authUsers) > 0, len(s.authUsers))
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
