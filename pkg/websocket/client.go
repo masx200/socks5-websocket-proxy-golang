@@ -179,8 +179,6 @@ func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.H
 	return headers
 }
 
-
-
 // generateWebSocketKey 生成WebSocket握手密钥
 func generateWebSocketKey() string {
 	// 生成16字节的随机密钥

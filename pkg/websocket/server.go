@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -176,52 +175,22 @@ func (s *WebSocketServer) Shutdown() error {
 
 // parseAuthInfo 从HTTP请求中解析认证信息
 func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, targetHost string, targetPort int, err error) {
-	// 优先从HTTP Headers中解析
-	if authHeader := r.Header.Get("X-Proxy-Auth"); authHeader != "" {
-		return s.parseAuthHeader(authHeader)
-	}
+	// 直接从HTTP Headers中获取用户名和密码
+	username = r.Header.Get("X-Proxy-Username")
+	password = r.Header.Get("X-Proxy-Password")
+	targetHost = r.URL.Query().Get("host")
 
-	// 从URL查询参数中解析
-	if username = r.URL.Query().Get("username"); username != "" {
-		password = r.URL.Query().Get("password")
-		targetHost = r.URL.Query().Get("host")
-		portStr := r.URL.Query().Get("port")
-		if portStr != "" {
-			_, err := fmt.Sscanf(portStr, "%d", &targetPort)
-			if err != nil {
-				return "", "", "", 0, fmt.Errorf("invalid port: %w", err)
-			}
-		}
-		return username, password, targetHost, targetPort, nil
-	}
-
-	// 如果没有找到认证信息，返回默认值
-	return "", "", "", 0, errors.New("no authentication information found")
-}
-
-// parseAuthHeader 解析HTTP Header中的认证信息
-func (s *WebSocketServer) parseAuthHeader(authHeader string) (username, password, targetHost string, targetPort int, err error) {
-	// Base64解码
-	decoded, err := base64.StdEncoding.DecodeString(authHeader)
-	if err != nil {
-		return "", "", "", 0, fmt.Errorf("failed to decode auth header: %w", err)
-	}
-
-	// 解析查询参数
-	values, err := url.ParseQuery(string(decoded))
-	if err != nil {
-		return "", "", "", 0, fmt.Errorf("failed to parse auth info: %w", err)
-	}
-
-	username = values.Get("username")
-	password = values.Get("password")
-	targetHost = values.Get("host")
-
-	if portStr := values.Get("port"); portStr != "" {
+	portStr := r.URL.Query().Get("port")
+	if portStr != "" {
 		_, err := fmt.Sscanf(portStr, "%d", &targetPort)
 		if err != nil {
 			return "", "", "", 0, fmt.Errorf("invalid port: %w", err)
 		}
+	}
+
+	// 如果没有找到认证信息，返回错误
+	if username == "" {
+		return "", "", "", 0, errors.New("no authentication information found")
 	}
 
 	return username, password, targetHost, targetPort, nil
