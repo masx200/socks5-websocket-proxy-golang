@@ -97,7 +97,9 @@ go build -o proxy-server.exe cmd/main.go
 ./proxy-server.exe -mode client -protocol socks5 -addr proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
 ```
 
-**详细使用指南**: 请查看 [客户端模式使用指南](CLIENT_MODE_GUIDE.md) 获取更详细的客户端模式使用说明，包括 SOCKS5 和 WebSocket 协议的具体配置方法和实际应用场景。
+**详细使用指南**: 请查看 [客户端模式使用指南](CLIENT_MODE_GUIDE.md)
+获取更详细的客户端模式使用说明，包括 SOCKS5 和 WebSocket
+协议的具体配置方法和实际应用场景。
 
 ## 配置说明
 
@@ -238,7 +240,7 @@ socks5-websocket-proxy-golang/
 │   └── main.go            # 主程序入口
 ├── config/                 # 配置文件
 │   ├── server-config.json # 服务端配置示例
-│   └── simple-config.json # 简单配置示例
+
 ├── internal/              # 内部包
 ├── pkg/                   # 可重用包
 │   ├── interfaces/        # 接口定义
