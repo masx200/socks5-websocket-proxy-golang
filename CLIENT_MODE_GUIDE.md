@@ -58,21 +58,21 @@
 
 ```bash
 # 连接到 SOCKS5 代理服务器并访问目标主机
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.example.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host www.example.com -port 80
 ```
 
 #### 带认证的连接
 
 ```bash
 # 使用用户名密码认证连接到 SOCKS5 代理服务器
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -username admin -password password123 -host target.example.com -port 443
+./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -username admin -password password123 -host www.example.com -port 443
 ```
 
 #### 自定义超时时间
 
 ```bash
 # 设置连接超时时间为 60 秒
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.example.com -port 80 -timeout 60
+./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host www.example.com -port 80 -timeout 60
 ```
 
 ### WebSocket 客户端模式
@@ -81,21 +81,21 @@
 
 ```bash
 # 连接到 WebSocket 代理服务器并访问目标主机
-./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -host target.example.com -port 80
+./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -host www.example.com -port 80
 ```
 
 #### 带认证的连接
 
 ```bash
 # 使用用户名密码认证连接到 WebSocket 代理服务器
-./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -username admin -password password123 -host target.example.com -port 443
+./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -username admin -password password123 -host www.example.com -port 443
 ```
 
 #### 自定义超时时间
 
 ```bash
 # 设置连接超时时间为 60 秒
-./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -host target.example.com -port 80 -timeout 60
+./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -host www.example.com -port 80 -timeout 60
 ```
 
 ## 配置文件使用
@@ -118,7 +118,7 @@
 
 ```bash
 # 使用配置文件启动客户端
-./proxy-server.exe -mode client -config client-config.json -host target.example.com -port 80
+./proxy-server.exe -mode client -config client-config.json -host www.example.com -port 80
 ```
 
 ## 实际应用场景
@@ -280,7 +280,7 @@
 telnet proxy.example.com 1080
 
 # 测试目标主机连通性
-telnet target.example.com 80
+telnet www.example.com 80
 ```
 
 #### 3. 检查配置文件
