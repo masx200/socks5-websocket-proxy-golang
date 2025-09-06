@@ -17,7 +17,7 @@
     },
     {
       "type": "socks5",
-      "proxy_address": "proxy.example.com:1080",
+      "proxy_address": "tcp://proxy.example.com:1080",
       "proxy_username": "proxy_user",
       "proxy_password": "proxy_pass",
       "timeout": 30000000000

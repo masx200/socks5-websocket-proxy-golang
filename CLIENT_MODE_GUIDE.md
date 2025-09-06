@@ -58,21 +58,21 @@
 
 ```bash
 # 连接到 SOCKS5 代理服务器并访问目标主机
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host www.example.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host www.example.com -port 80
 ```
 
 #### 带认证的连接
 
 ```bash
 # 使用用户名密码认证连接到 SOCKS5 代理服务器
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -username admin -password password123 -host www.example.com -port 443
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -username admin -password password123 -host www.example.com -port 443
 ```
 
 #### 自定义超时时间
 
 ```bash
 # 设置连接超时时间为 60 秒
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host www.example.com -port 80 -timeout 60
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host www.example.com -port 80 -timeout 60
 ```
 
 ### WebSocket 客户端模式
@@ -106,7 +106,7 @@
 
 ```bash
 # 通过 SOCKS5 代理访问 Google
-./proxy-server.exe -mode client -protocol socks5 -addr your-socks5-server.com:1080 -username user -password pass -host www.google.com -port 443
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://your-socks5-server.com:1080 -username user -password pass -host www.google.com -port 443
 ```
 
 #### 通过 WebSocket 代理绕过防火墙
@@ -122,7 +122,7 @@
 
 ```bash
 # 通过 SOCKS5 代理连接远程 MySQL 数据库
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.company.com:1080 -username dbuser -password dbpass -host mysql.internal.company.com -port 3306
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.company.com:1080 -username dbuser -password dbpass -host mysql.internal.company.com -port 3306
 ```
 
 #### PostgreSQL 数据库连接
@@ -138,7 +138,7 @@
 
 ```bash
 # 通过 SOCKS5 代理访问内部 API 服务
-./proxy-server.exe -mode client -protocol socks5 -addr api-gateway.company.com:1080 -username apiuser -password apipass -host api.internal.company.com -port 8080
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://api-gateway.company.com:1080 -username apiuser -password apipass -host api.internal.company.com -port 8080
 ```
 
 #### GraphQL API 访问
@@ -154,7 +154,7 @@
 
 ```bash
 # 本地开发时通过 SOCKS5 代理连接远程开发环境
-./proxy-server.exe -mode client -protocol socks5 -addr dev-proxy.company.com:1080 -username devuser -password devpass -host dev-service.internal.company.com -port 3000
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://dev-proxy.company.com:1080 -username devuser -password devpass -host dev-service.internal.company.com -port 3000
 ```
 
 #### 测试环境服务访问
@@ -175,7 +175,7 @@
 ./proxy-server.exe -mode client -protocol websocket -addr ws://first-proxy.com:8080/proxy -username user1 -password pass1 -host second-proxy.com -port 1080 &
 
 # 第二层：SOCKS5 代理
-./proxy-server.exe -mode client -protocol socks5 -addr localhost:1080 -username user2 -password pass2 -host target-site.com -port 443
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://localhost:1080 -username user2 -password pass2 -host target-site.com -port 443
 ```
 
 ### 2. 端口转发
@@ -184,7 +184,7 @@
 
 ```bash
 # 将本地 8080 端口转发到远程服务
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -username user -password pass -host remote-service.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -username user -password pass -host remote-service.com -port 80
 ```
 
 ### 3. 动态端口分配
@@ -193,7 +193,7 @@
 
 ```bash
 # 让系统自动分配本地端口
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -username user -password pass -host remote-service.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -username user -password pass -host remote-service.com -port 80
 ```
 
 ## 故障排除
@@ -202,7 +202,7 @@
 
 #### 1. 连接被拒绝
 
-**问题**: `dial tcp proxy.example.com:1080: connect: connection refused`
+**问题**: `dial tcp tcp://proxy.example.com:1080: connect: connection refused`
 
 **解决方案**:
 
@@ -247,7 +247,7 @@
 
 ```bash
 # 启用详细日志输出（如果支持）
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.com -port 80 -v
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host target.com -port 80 -v
 ```
 
 #### 2. 测试连接连通性
@@ -268,7 +268,7 @@ telnet www.example.com 80
 
 ```bash
 # 设置较长的超时时间以复用连接
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.com -port 80 -timeout 300
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host target.com -port 80 -timeout 300
 ```
 
 ### 2. 并发连接
@@ -278,7 +278,7 @@ telnet www.example.com 80
 ```bash
 # 启动多个客户端实例
 for i in {1..5}; do
-    ./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.com -port 80 &
+    ./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host target.com -port 80 &
 done
 ```
 
@@ -288,7 +288,7 @@ done
 
 ```bash
 # 根据网络状况设置合适的超时时间
-./proxy-server.exe -mode client -protocol socks5 -addr proxy.example.com:1080 -host target.com -port 80 -timeout 60
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host target.com -port 80 -timeout 60
 ```
 
 ## 安全注意事项

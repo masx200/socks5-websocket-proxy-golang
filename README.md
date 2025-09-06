@@ -94,7 +94,7 @@ go build -o proxy-server.exe cmd/main.go
 
 ```bash
 # 连接到目标主机
-./proxy-server.exe -mode client -protocol socks5 -addr proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
 ```
 
 **详细使用指南**: 请查看 [客户端模式使用指南](CLIENT_MODE_GUIDE.md)
@@ -184,7 +184,7 @@ go build -o proxy-server.exe cmd/main.go
     },
     {
       "type": "socks5",
-      "proxy_address": "proxy.example.com:1080",
+      "proxy_address": "tcp://proxy.example.com:1080",
       "proxy_username": "proxy_user",
       "proxy_password": "proxy_pass",
       "timeout": 30000000000
