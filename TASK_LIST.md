@@ -126,3 +126,4 @@
   函数中添加 strings.TrimSuffix 处理
 - 2025-09-06：修改 WebSocket 协议实现，将 targetHost 和 targetPort 从 URL
   查询参数移动到 HTTP Headers 中，提高安全性
+- 2025-09-06：完善 SOCKS5 和 WebSocket 服务端的日志打印功能，统一日志前缀格式，添加连接状态、认证信息、上游选择、数据转发等详细日志信息

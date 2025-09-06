@@ -43,7 +43,7 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			dailer := net.Dialer{}
 
-			log.Printf("Dial %s %s", network, addr)
+			log.Printf("[SOCKS5-LIB] Dial %s %s", network, addr)
 			return dailer.DialContext(ctx, network, addr)
 		},
 	}
@@ -58,7 +58,7 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	server, err := socks5.New(socks5Config)
 	if err != nil {
 		// 如果创建失败，返回nil
-		fmt.Printf("Failed to create SOCKS5 server: %v\n", err)
+		fmt.Printf("[SOCKS5-SERVER] Failed to create SOCKS5 server: %v\n", err)
 		return nil
 	}
 
@@ -152,6 +152,10 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	} else {
 		fmt.Printf("[SOCKS5-CONN] No authentication required for client %s\n", clientAddr)
 	}
+
+	// 记录本地和远程地址信息
+	localAddr := conn.LocalAddr().String()
+	fmt.Printf("[SOCKS5-CONN] Connection details - Local: %s, Remote: %s\n", localAddr, clientAddr)
 
 	// 使用github.com/armon/go-socks5库处理连接
 	err := s.server.ServeConn(conn)
@@ -283,7 +287,7 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 
 			return s.SelectUpstreamConnection(host, portInt)
 		},
-		Logger: log.New(os.Stdout, "[SOCKS5] ", log.LstdFlags),
+		Logger: log.New(os.Stdout, "[SOCKS5-LIB] ", log.LstdFlags),
 	}
 
 	// 如果有认证用户，添加用户名密码认证
@@ -304,6 +308,8 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 	fmt.Printf("[SOCKS5-SERVER] Configuration reloaded successfully\n")
 	fmt.Printf("[SOCKS5-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
 	fmt.Printf("[SOCKS5-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
+	fmt.Printf("[SOCKS5-SERVER] Listen address: %s\n", newConfig.ListenAddr)
+	fmt.Printf("[SOCKS5-SERVER] Timeout: %v\n", newConfig.Timeout)
 
 	return nil
 }

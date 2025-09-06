@@ -63,14 +63,16 @@ func (s *WebSocketServer) Listen() error {
 		WriteTimeout: s.config.Timeout,
 	}
 
-	fmt.Printf("WebSocket server listening on %s\n", s.config.ListenAddr)
-	fmt.Printf("[websocket-SERVER] Authentication enabled: %t (%d users configured)\n",
+	fmt.Printf("[WEBSOCKET-SERVER] Server started successfully, listening on %s\n", s.config.ListenAddr)
+	fmt.Printf("[WEBSOCKET-SERVER] Authentication enabled: %t (%d users configured)\n",
 		len(s.authUsers) > 0, len(s.authUsers))
+	fmt.Printf("[WEBSOCKET-SERVER] Upstream selector enabled: %t\n", s.config.EnableUpstream)
+	fmt.Printf("[WEBSOCKET-SERVER] Read timeout: %v, Write timeout: %v\n", s.config.Timeout, s.config.Timeout)
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("HTTP server error: %v\n", err)
+			fmt.Printf("[WEBSOCKET-SERVER] HTTP server error: %v\n", err)
 		}
 	}()
 
@@ -80,34 +82,42 @@ func (s *WebSocketServer) Listen() error {
 // handleWebSocketConnection 处理WebSocket连接
 func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
 	clientAddr := r.RemoteAddr
-	fmt.Printf("WebSocket connection attempt from %s\n", clientAddr)
+	startTime := time.Now()
+	fmt.Printf("[WEBSOCKET-CONN] New connection attempt from %s at %s\n", clientAddr, startTime.Format("2006-01-02 15:04:05"))
+
+	// 记录认证配置状态
+	if len(s.authUsers) > 0 {
+		fmt.Printf("[WEBSOCKET-CONN] Authentication required for client %s (%d users configured)\n", clientAddr, len(s.authUsers))
+	} else {
+		fmt.Printf("[WEBSOCKET-CONN] No authentication required for client %s\n", clientAddr)
+	}
 
 	// 从HTTP Headers中解析认证信息
 	username, password, targetHost, targetPort, err := s.parseAuthInfo(r)
 	if err != nil {
-		fmt.Printf("WebSocket auth info parse error from %s: %v\n", clientAddr, err)
+		fmt.Printf("[WEBSOCKET-CONN] Auth info parse error from %s: %v\n", clientAddr, err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// 验证用户名密码
 	if !s.Authenticate(username, password) {
-		fmt.Printf("WebSocket authentication failed for user %s from %s\n", username, clientAddr)
+		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed for user '%s' from %s\n", username, clientAddr)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	fmt.Printf("WebSocket authentication successful for user %s from %s\n", username, clientAddr)
+	fmt.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s' from %s\n", username, clientAddr)
 
 	// 升级HTTP连接为WebSocket连接
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("WebSocket upgrade failed for client %s: %v\n", clientAddr, err)
+		fmt.Printf("[WEBSOCKET-CONN] WebSocket upgrade failed for client %s: %v\n", clientAddr, err)
 		return
 	}
 	defer conn.Close()
 
-	fmt.Printf("WebSocket connection established successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
+	fmt.Printf("[WEBSOCKET-CONN] WebSocket connection established successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
 
 	// 处理WebSocket连接
 	s.wg.Add(1)
@@ -118,9 +128,11 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 
 	// 使用统一的连接处理逻辑
 	if err := s.HandleConnection(wsConn); err != nil {
-		fmt.Printf("WebSocket connection handling failed for target %s:%d from %s: %v\n", targetHost, targetPort, clientAddr, err)
+		duration := time.Since(startTime)
+		fmt.Printf("[WEBSOCKET-CONN] Connection handling failed for target %s:%d from %s after %v: %v\n", targetHost, targetPort, clientAddr, duration, err)
 	} else {
-		fmt.Printf("WebSocket connection completed successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
+		duration := time.Since(startTime)
+		fmt.Printf("[WEBSOCKET-CONN] Connection completed successfully for target %s:%d from %s, duration: %v\n", targetHost, targetPort, clientAddr, duration)
 	}
 }
 
@@ -148,44 +160,83 @@ func (s *WebSocketServer) HandleConnection(conn net.Conn) error {
 
 // Authenticate 验证用户名密码
 func (s *WebSocketServer) Authenticate(username, password string) bool {
-	if s.authUsers == nil {
+	if s.authUsers == nil || len(s.authUsers) == 0 {
+		fmt.Printf("[WEBSOCKET-AUTH] No authentication configured, allowing access for user '%s'\n", username)
 		return true // 如果没有配置用户，则允许所有连接
 	}
 
 	storedPassword, exists := s.authUsers[username]
 	if !exists {
+		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed: user '%s' not found in configured users\n", username)
 		return false
 	}
 
-	return storedPassword == password
+	if storedPassword == password {
+		fmt.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s'\n", username)
+		return true
+	} else {
+		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed: invalid password for user '%s'\n", username)
+		return false
+	}
 }
 
 // SelectUpstreamConnection 选择上游连接
 func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
+	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
+
 	if s.selector != nil {
+		fmt.Printf("[WEBSOCKET-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
+		var conn net.Conn
+		var err error
+
 		// 尝试类型断言
 		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
 			if selector != nil {
-				return selector.SelectConnection(targetHost, targetPort)
+				conn, err = selector.SelectConnection(targetHost, targetPort)
 			}
 		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok {
 			if selector != nil {
-				return selector.SelectConnection(targetHost, targetPort)
+				conn, err = selector.SelectConnection(targetHost, targetPort)
 			}
+		} else {
+			err = fmt.Errorf("unknown selector type")
 		}
+
+		if err != nil {
+			fmt.Printf("[WEBSOCKET-UPSTREAM] Upstream selector failed for target %s: %v\n", targetAddr, err)
+		} else {
+			fmt.Printf("[WEBSOCKET-UPSTREAM] Upstream selector succeeded for target %s\n", targetAddr)
+		}
+		return conn, err
 	}
 
 	// 默认直连
-	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), s.config.Timeout)
+	timeout := s.config.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
+
+	fmt.Printf("[WEBSOCKET-UPSTREAM] Using direct connection for target %s (timeout: %v)\n", targetAddr, timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
+	if err != nil {
+		fmt.Printf("[WEBSOCKET-UPSTREAM] Direct connection failed for target %s: %v\n", targetAddr, err)
+	} else {
+		fmt.Printf("[WEBSOCKET-UPSTREAM] Direct connection established for target %s\n", targetAddr)
+	}
+	return conn, err
 }
 
 // Shutdown 优雅关闭服务端
 func (s *WebSocketServer) Shutdown() error {
+	fmt.Printf("[WEBSOCKET-SERVER] Initiating graceful shutdown...\n")
 	close(s.shutdown)
 	if s.httpServer != nil {
+		fmt.Printf("[WEBSOCKET-SERVER] Closing HTTP server...\n")
 		s.httpServer.Close()
 	}
+	fmt.Printf("[WEBSOCKET-SERVER] Waiting for active connections to close...\n")
 	s.wg.Wait()
+	fmt.Printf("[WEBSOCKET-SERVER] Server shutdown completed successfully\n")
 	return nil
 }
 
@@ -210,6 +261,8 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 	fmt.Printf("[WEBSOCKET-SERVER] Configuration reloaded successfully\n")
 	fmt.Printf("[WEBSOCKET-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
 	fmt.Printf("[WEBSOCKET-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
+	fmt.Printf("[WEBSOCKET-SERVER] Listen address: %s\n", newConfig.ListenAddr)
+	fmt.Printf("[WEBSOCKET-SERVER] Timeout: %v\n", newConfig.Timeout)
 
 	return nil
 }
@@ -231,6 +284,10 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 		}
 	}
 
+	// 记录解析的认证信息
+	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', targetHost: '%s', targetPort: %d\n", 
+		username, targetHost, targetPort)
+
 	// 允许没有认证信息的情况，返回空字符串而不是错误
 	// 实际的认证验证会在Authenticate方法中进行
 	return username, password, targetHost, targetPort, nil
@@ -238,19 +295,24 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 
 // forwardData 转发数据
 func (s *WebSocketServer) forwardData(clientConn, targetConn net.Conn) error {
+	fmt.Printf("[WEBSOCKET-FORWARD] Starting data forwarding between connections\n")
 	done := make(chan error, 2)
 
 	go func() {
-		_, err := io.Copy(targetConn, clientConn)
+		bytesWritten, err := io.Copy(targetConn, clientConn)
+		fmt.Printf("[WEBSOCKET-FORWARD] Client -> Target: %d bytes transferred, error: %v\n", bytesWritten, err)
 		done <- err
 	}()
 
 	go func() {
-		_, err := io.Copy(clientConn, targetConn)
+		bytesWritten, err := io.Copy(clientConn, targetConn)
+		fmt.Printf("[WEBSOCKET-FORWARD] Target -> Client: %d bytes transferred, error: %v\n", bytesWritten, err)
 		done <- err
 	}()
 
-	return <-done
+	err := <-done
+	fmt.Printf("[WEBSOCKET-FORWARD] Data forwarding completed with error: %v\n", err)
+	return err
 }
 
 // websocketNetConn 将websocket.Conn包装为net.Conn
