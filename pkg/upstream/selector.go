@@ -174,7 +174,7 @@ func (s *DynamicUpstreamSelector) UpdateHealthStatus(address string, healthy boo
 // createDirectConnection 创建TCP直连
 func (s *DynamicUpstreamSelector) createDirectConnection(targetHost string, targetPort int) (net.Conn, error) {
 	timeout := 30 * time.Second // 默认30秒超时
-	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), timeout)
+	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 }
 
 // createSOCKS5Connection 创建SOCKS5代理连接
@@ -469,9 +469,9 @@ func (s *UpstreamSelector) SelectConnection(targetHost string, targetPort int) (
 func (s *UpstreamSelector) createDirectConnection(targetHost string, targetPort int) (net.Conn, error) {
 	timeout := s.getTimeout()
 	if net.ParseIP(targetHost) != nil && net.ParseIP(targetHost).To4() == nil {
-		return net.DialTimeout("tcp", fmt.Sprintf("[%s]:%d", targetHost, targetPort), timeout)
+		return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 	}
-	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), timeout)
+	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 }
 
 // createSOCKS5Connection 创建SOCKS5代理连接

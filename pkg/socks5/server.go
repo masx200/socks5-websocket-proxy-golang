@@ -209,7 +209,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 	}
 
 	fmt.Printf("[SOCKS5-UPSTREAM] Using direct connection for target %s (timeout: %v)\n", targetAddr, timeout)
-	conn, err := net.DialTimeout("tcp", targetAddr, timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 	if err != nil {
 		fmt.Printf("[SOCKS5-UPSTREAM] Direct connection failed for target %s: %v\n", targetAddr, err)
 	} else {
