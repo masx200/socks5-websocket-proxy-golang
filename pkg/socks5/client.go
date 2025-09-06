@@ -15,9 +15,10 @@ import (
 
 // SOCKS5Client SOCKS5客户端实现
 type SOCKS5Client struct {
-	config        interfaces.ClientConfig
-	conn          net.Conn
-	authenticated bool
+	config                   interfaces.ClientConfig
+	conn                     net.Conn
+	authenticated            bool
+	connectionClosedCallback func()
 }
 
 // NewSOCKS5Client 创建新的SOCKS5客户端
@@ -89,8 +90,19 @@ func (c *SOCKS5Client) ForwardData(conn net.Conn) error {
 // Close 关闭连接
 func (c *SOCKS5Client) Close() error {
 	if c.conn != nil {
-		return c.conn.Close()
+		err := c.conn.Close()
+		// 如果设置了连接关闭回调，则调用它
+		if c.connectionClosedCallback != nil {
+			c.connectionClosedCallback()
+		}
+		return err
 	}
+	return nil
+}
+
+// SetConnectionClosedCallback 设置连接关闭回调
+func (c *SOCKS5Client) SetConnectionClosedCallback(callback func()) error {
+	c.connectionClosedCallback = callback
 	return nil
 }
 

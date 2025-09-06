@@ -21,9 +21,10 @@ func init() {
 
 // WebSocketClient WebSocket客户端实现
 type WebSocketClient struct {
-	config     interfaces.ClientConfig
-	conn       *websocket.Conn
-	httpClient *http.Client
+	config                   interfaces.ClientConfig
+	conn                     *websocket.Conn
+	httpClient               *http.Client
+	connectionClosedCallback func()
 }
 
 // NewWebSocketClient 创建新的WebSocket客户端
@@ -123,8 +124,19 @@ func (c *WebSocketClient) ForwardData(conn net.Conn) error {
 func (c *WebSocketClient) Close() error {
 	if c.conn != nil {
 		// 发送关闭消息
-		return c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		err := c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		// 如果设置了连接关闭回调，则调用它
+		if c.connectionClosedCallback != nil {
+			c.connectionClosedCallback()
+		}
+		return err
 	}
+	return nil
+}
+
+// SetConnectionClosedCallback 设置连接关闭回调
+func (c *WebSocketClient) SetConnectionClosedCallback(callback func()) error {
+	c.connectionClosedCallback = callback
 	return nil
 }
 

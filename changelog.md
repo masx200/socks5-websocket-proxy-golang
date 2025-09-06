@@ -53,6 +53,14 @@
 - **影响**:
   解决了因selector初始化不当导致的panic问题，提高了WebSocket服务端的稳定性和可靠性
 
+#### 客户端连接关闭callback功能
+
+- **提交**: `connection-callback` - feat(client): 实现连接关闭callback功能
+- **描述**:
+  为ProxyClient接口添加SetConnectionClosedCallback方法，支持连接关闭时自动触发回调函数，替换原来的轮询检查机制
+- **影响**:
+  提高了连接状态检测的效率和可靠性，当客户端连接被关闭时程序能够自动退出，改善了用户体验
+
 ### 文档更新 (Documentation)
 
 #### 文档清理和更新
@@ -107,6 +115,15 @@
 - 修复SelectUpstreamConnection方法中的nil检查逻辑，从简单的`s.selector != nil`改为`s.selector != nil && !isNilInterface(s.selector)`
 - 解决在Upstream selector enabled: false情况下仍进入选择器分支的问题
 - 添加reflect包导入，支持更严格的interface{}内部值检查，避免包含nil指针的interface{}被误判为有效值
+
+### 客户端连接关闭callback功能实现
+
+- 在ProxyClient接口中添加SetConnectionClosedCallback(callback func()) error方法声明
+- 修改cmd/main.go中的startClient函数，使用callback机制替换原来的轮询检查连接状态方式
+- 在SOCKS5Client和WebSocketClient结构体中添加connectionClosedCallback func()字段
+- 实现SetConnectionClosedCallback方法用于设置回调函数，在Close方法中调用connectionClosedCallback
+- 移除不再使用的isConnectionAlive函数和reflect包导入，清理代码提高可维护性
+- 通过callback机制实现连接关闭时自动退出程序，提高效率和可靠性
 
 ## 注意事项
 

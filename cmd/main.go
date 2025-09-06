@@ -221,9 +221,25 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 	// 这里只是演示，实际使用时需要根据具体需求调整
 	log.Println("客户端已启动，按Ctrl+C停止")
 
-	// 等待停止信号
-	<-sigChan
-	log.Println("正在停止客户端...")
+	// 设置连接关闭回调
+	connectionClosed := make(chan bool, 1)
+	err = client.SetConnectionClosedCallback(func() {
+		log.Println("连接已关闭，正在退出程序...")
+		connectionClosed <- true
+	})
+	if err != nil {
+		log.Printf("设置连接关闭回调失败: %v\n", err)
+	}
+
+	// 等待停止信号或连接关闭
+	var connectionWasClosed bool
+	select {
+	case <-sigChan:
+		log.Println("正在停止客户端...")
+	case <-connectionClosed:
+		log.Println("连接已关闭，正在退出程序...")
+		connectionWasClosed = true
+	}
 
 	// 关闭客户端
 	if err := client.Close(); err != nil {
@@ -231,6 +247,10 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 	}
 
 	log.Println("客户端已停止")
+	// 如果是连接关闭导致的退出，直接退出程序
+	if connectionWasClosed {
+		os.Exit(1)
+	}
 }
 
 // loadServerConfig 从配置文件加载服务端配置
