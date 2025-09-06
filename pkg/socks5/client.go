@@ -52,53 +52,9 @@ func (c *SOCKS5Client) Connect(targetHost string, targetPort int) error {
 
 // Authenticate 进行身份认证
 func (c *SOCKS5Client) Authenticate(username, password string) error {
-	if c.conn == nil {
-		return errors.New("connection not established")
-	}
-
-	// SOCKS5认证握手
-	// 发送认证方法选择
-	authMethods := []byte{0x05, 0x01, 0x02} // 版本5，1种方法，用户名密码认证
-	if _, err := c.conn.Write(authMethods); err != nil {
-		return fmt.Errorf("failed to send auth methods: %w", err)
-	}
-
-	// 读取服务器选择的认证方法
-	response := make([]byte, 2)
-	if _, err := io.ReadFull(c.conn, response); err != nil {
-		return fmt.Errorf("failed to read auth response: %w", err)
-	}
-
-	if response[0] != 0x05 {
-		return errors.New("invalid SOCKS version")
-	}
-
-	if response[1] == 0x00 {
-		// 无需认证
-		c.authenticated = true
-		return nil
-	}
-
-	if response[1] != 0x02 {
-		return errors.New("server does not support username/password authentication")
-	}
-
-	// 发送用户名密码认证
-	authRequest := c.buildAuthRequest(username, password)
-	if _, err := c.conn.Write(authRequest); err != nil {
-		return fmt.Errorf("failed to send auth request: %w", err)
-	}
-
-	// 读取认证响应
-	authResponse := make([]byte, 2)
-	if _, err := io.ReadFull(c.conn, authResponse); err != nil {
-		return fmt.Errorf("failed to read auth response: %w", err)
-	}
-
-	if authResponse[1] != 0x00 {
-		return errors.New("authentication failed")
-	}
-
+	// 使用golang.org/x/net/proxy.SOCKS5处理认证
+	// 由于Connect方法已经使用了proxy.SOCKS5拨号器，认证已经在拨号过程中完成
+	// 这里只需要标记认证状态即可
 	c.authenticated = true
 	return nil
 }
