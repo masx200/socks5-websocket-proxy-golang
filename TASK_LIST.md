@@ -116,3 +116,4 @@
 - 2025-06-24：修改SOCKS5服务端使用github.com/armon/go-socks5库，修复编译错误
 - 2025-06-24：删除SOCKS5服务端后备方案代码，完全依赖github.com/armon/go-socks5库
 - 2025-06-24：为服务端添加连接成功和失败日志打印功能，包括SOCKS5和WebSocket服务端的详细连接状态日志
+- 2025-09-06：修复SOCKS5客户端地址解析问题，解决尾部斜杠导致端口解析错误的问题，在parseServerAddr函数中添加strings.TrimSuffix处理
