@@ -57,7 +57,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/socks5-websocket-proxy-golang.git
+git clone https://github.com/masx200/socks5-websocket-proxy-golang.git
 cd socks5-websocket-proxy-golang
 
 # 下载依赖
@@ -366,8 +366,8 @@ type ProxyServer interface {
 
 ## 联系方式
 
-- 项目地址: https://github.com/yourusername/socks5-websocket-proxy-golang
-- 问题反馈: https://github.com/yourusername/socks5-websocket-proxy-golang/issues
+- 项目地址: https://github.com/masx200/socks5-websocket-proxy-golang
+- 问题反馈: https://github.com/masx200/socks5-websocket-proxy-golang/issues
 
 ## 更新日志
 
