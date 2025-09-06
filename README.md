@@ -64,10 +64,10 @@ cd socks5-websocket-proxy-golang
 go mod tidy
 
 # 编译
-go build -o proxy-server cmd/main.go
+go build -o proxy-server.exe cmd/main.go
 
 # 运行
-./proxy-server
+./proxy-server.exe
 ```
 
 ## 快速开始
