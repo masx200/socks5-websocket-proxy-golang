@@ -22,7 +22,7 @@ type SOCKS5Server struct {
 	shutdown  chan struct{}
 	wg        sync.WaitGroup
 	authUsers map[string]string
-	selector  *upstream.UpstreamSelector
+	selector  interface{}
 	logger    *log.Logger
 }
 
@@ -193,7 +193,18 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 
 	if s.selector != nil {
 		fmt.Printf("[SOCKS5-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
-		conn, err := s.selector.SelectConnection(targetHost, targetPort)
+		var conn net.Conn
+		var err error
+		
+		// 尝试类型断言
+		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
+			conn, err = selector.SelectConnection(targetHost, targetPort)
+		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok {
+			conn, err = selector.SelectConnection(targetHost, targetPort)
+		} else {
+			err = fmt.Errorf("unknown selector type")
+		}
+		
 		if err != nil {
 			fmt.Printf("[SOCKS5-UPSTREAM] Upstream selector failed for target %s: %v\n", targetAddr, err)
 		} else {
@@ -247,11 +258,7 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 	
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
-		selector, err := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig)
-		if err != nil {
-			fmt.Printf("[SOCKS5-SERVER] Failed to create upstream selector: %v\n", err)
-			return fmt.Errorf("failed to create upstream selector: %w", err)
-		}
+		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
 		s.selector = selector
 		fmt.Printf("[SOCKS5-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
 	} else {
@@ -261,7 +268,7 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 	
 	// 重新创建SOCKS5服务器实例
 	var socks5Config *socks5.Config = &socks5.Config{
-		Dial: func(network, addr string) (net.Conn, error) {
+		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			// 解析地址
 			host, port, err := net.SplitHostPort(addr)
 			if err != nil {

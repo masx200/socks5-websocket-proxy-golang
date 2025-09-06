@@ -22,7 +22,7 @@ type WebSocketServer struct {
 	shutdown   chan struct{}
 	wg         sync.WaitGroup
 	authUsers  map[string]string
-	selector   *upstream.UpstreamSelector
+	selector   interface{}
 }
 
 // NewWebSocketServer 创建新的WebSocket服务端
@@ -162,7 +162,12 @@ func (s *WebSocketServer) Authenticate(username, password string) bool {
 // SelectUpstreamConnection 选择上游连接
 func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
 	if s.selector != nil {
-		return s.selector.SelectConnection(targetHost, targetPort)
+		// 尝试类型断言
+		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
+			return selector.SelectConnection(targetHost, targetPort)
+		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok {
+			return selector.SelectConnection(targetHost, targetPort)
+		}
 	}
 
 	// 默认直连
@@ -189,11 +194,7 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 	
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
-		selector, err := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig)
-		if err != nil {
-			fmt.Printf("[WEBSOCKET-SERVER] Failed to create upstream selector: %v\n", err)
-			return fmt.Errorf("failed to create upstream selector: %w", err)
-		}
+		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
 		s.selector = selector
 		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
 	} else {
