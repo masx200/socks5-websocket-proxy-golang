@@ -219,9 +219,11 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 	// 直接从HTTP Headers中获取用户名和密码
 	username = r.Header.Get("X-Proxy-Username")
 	password = r.Header.Get("X-Proxy-Password")
-	targetHost = r.URL.Query().Get("host")
 
-	portStr := r.URL.Query().Get("port")
+	// 从HTTP Headers中获取目标主机和端口
+	targetHost = r.Header.Get("X-Proxy-Target-Host")
+
+	portStr := r.Header.Get("X-Proxy-Target-Port")
 	if portStr != "" {
 		_, err := fmt.Sscanf(portStr, "%d", &targetPort)
 		if err != nil {

@@ -124,3 +124,5 @@
 - 2025-09-06：修复 SOCKS5
   客户端地址解析问题，解决尾部斜杠导致端口解析错误的问题，在 parseServerAddr
   函数中添加 strings.TrimSuffix 处理
+- 2025-09-06：修改 WebSocket 协议实现，将 targetHost 和 targetPort 从 URL
+  查询参数移动到 HTTP Headers 中，提高安全性

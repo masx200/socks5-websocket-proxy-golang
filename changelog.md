@@ -35,6 +35,16 @@
 - **描述**: 将上游选择器的类型修改为interface，支持多种不同的实现方式
 - **影响**: 提高了代码的可扩展性和灵活性
 
+#### WebSocket协议安全性优化
+
+- **提交**: `websocket-security` - refactor(websocket):
+  将目标信息从URL查询参数移动到HTTP Headers
+- **描述**:
+  修改WebSocket协议实现，将targetHost和targetPort从URL查询参数移动到HTTP
+  Headers中传输
+- **影响**:
+  提高了协议安全性，减少了URL中暴露敏感信息的风险，使WebSocket连接URL更加简洁
+
 ### 文档更新 (Documentation)
 
 #### 文档清理和更新
@@ -68,6 +78,13 @@
 - 实现服务器的优雅关闭和重启
 - 支持SOCKS5和WebSocket协议之间的无缝切换
 - 保持配置监听器在重启后的连续性
+
+### WebSocket协议安全性优化实现
+
+- 修改客户端buildWebSocketURL方法，移除URL查询参数中的host和port
+- 更新客户端buildHeaders方法，添加X-Proxy-Target-Host和X-Proxy-Target-Port头部
+- 修改服务端parseAuthInfo方法，从HTTP Headers中解析目标主机和端口信息
+- 保持原有认证机制和功能完整性，提高了数据传输安全性
 
 ## 注意事项
 

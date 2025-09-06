@@ -47,7 +47,7 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	}
 
 	// 创建请求头
-	headers := c.buildHeaders()
+	headers := c.buildHeaders(targetHost, targetPort)
 
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
@@ -136,28 +136,22 @@ func (c *WebSocketClient) buildWebSocketURL(targetHost string, targetPort int) (
 		return "", fmt.Errorf("invalid server address: %w", err)
 	}
 
-	// 构建查询参数
-	query := url.Values{}
-	query.Set("host", targetHost)
-	query.Set("port", fmt.Sprintf("%d", targetPort))
-
-	// 构建WebSocket URL
+	// 构建WebSocket URL (不再包含查询参数)
 	wsScheme := "ws"
 	if serverURL.Scheme == "https" {
 		wsScheme = "wss"
 	}
 
-	wsURL := fmt.Sprintf("%s://%s%s?%s",
+	wsURL := fmt.Sprintf("%s://%s%s",
 		wsScheme,
 		serverURL.Host,
-		serverURL.Path,
-		query.Encode())
+		serverURL.Path)
 
 	return wsURL, nil
 }
 
 // buildHeaders 构建HTTP请求头
-func (c *WebSocketClient) buildHeaders() http.Header {
+func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.Header {
 	headers := make(http.Header)
 
 	// 注意：不手动设置标准的WebSocket握手头（Upgrade、Connection、Sec-WebSocket-Version、Sec-WebSocket-Key）
@@ -170,6 +164,10 @@ func (c *WebSocketClient) buildHeaders() http.Header {
 	if c.config.Password != "" {
 		headers.Set("X-Proxy-Password", c.config.Password)
 	}
+
+	// 将目标主机和端口添加到HTTP Headers
+	headers.Set("X-Proxy-Target-Host", targetHost)
+	headers.Set("X-Proxy-Target-Port", fmt.Sprintf("%d", targetPort))
 
 	return headers
 }
