@@ -83,11 +83,15 @@ func (cw *ConfigWatcher) watchLoop() {
 				return
 			}
 
+			log.Printf("[CONFIG-WATCHER] 检测到文件事件: %s, 操作: %v", event.Name, event.Op)
+
 			// 检查是否是配置文件的变化
 			if filepath.Base(event.Name) == filepath.Base(cw.configFile) {
 				if event.Op&fsnotify.Write == fsnotify.Write ||
 					event.Op&fsnotify.Create == fsnotify.Create ||
 					event.Op&fsnotify.Rename == fsnotify.Rename {
+
+					log.Printf("[CONFIG-WATCHER] 检测到配置文件变化: %s", event.Name)
 
 					// 防抖处理
 					time.Sleep(cw.debounce)
@@ -126,15 +130,7 @@ func (cw *ConfigWatcher) hasFileChanged() bool {
 
 // handleConfigChange 处理配置文件变化
 func (cw *ConfigWatcher) handleConfigChange() {
-	// 防抖处理，避免频繁重载
-	time.Sleep(500 * time.Millisecond)
-
-	// 检查文件是否真的发生了变化
-	if !cw.hasFileChanged() {
-		return
-	}
-
-	log.Printf("[CONFIG-WATCHER] 配置文件 %s 发生变化，开始重新加载...", cw.configFile)
+	log.Printf("[CONFIG-WATCHER] 开始处理配置文件变化")
 
 	// 重新加载配置
 	config, err := interfaces.LoadConfig(cw.configFile)
@@ -143,11 +139,15 @@ func (cw *ConfigWatcher) handleConfigChange() {
 		return
 	}
 
+	log.Printf("[CONFIG-WATCHER] 配置文件加载成功")
+
 	// 验证配置
 	if err := interfaces.ValidateConfig(config); err != nil {
 		log.Printf("[CONFIG-WATCHER] 配置验证失败: %v", err)
 		return
 	}
+
+	log.Printf("[CONFIG-WATCHER] 配置验证通过，开始重载到服务器")
 
 	// 重新加载配置到服务器
 	if err := cw.server.ReloadConfig(config); err != nil {

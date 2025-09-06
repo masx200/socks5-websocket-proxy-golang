@@ -20,30 +20,30 @@ const (
 
 // UpstreamConfig 上游连接配置
 type UpstreamConfig struct {
-	Type          UpstreamType  // 上游连接类型
-	ProxyAddress  string        // 代理服务器地址
-	ProxyUsername string        // 代理用户名
-	ProxyPassword string        // 代理密码
-	Timeout       time.Duration // 超时时间
+	Type          UpstreamType  `json:"type"`           // 上游连接类型
+	ProxyAddress  string        `json:"proxy_address"`  // 代理服务器地址
+	ProxyUsername string        `json:"proxy_username"` // 代理用户名
+	ProxyPassword string        `json:"proxy_password"` // 代理密码
+	Timeout       time.Duration `json:"timeout"`        // 超时时间
 }
 
 // ClientConfig 客户端配置
 type ClientConfig struct {
-	Username   string        // 用户名
-	Password   string        // 密码
-	ServerAddr string        // 服务器地址
-	Protocol   string        // 协议类型
-	Timeout    time.Duration // 超时时间
+	Username   string        `json:"username"`   // 用户名
+	Password   string        `json:"password"`   // 密码
+	ServerAddr string        `json:"server_addr"` // 服务器地址
+	Protocol   string        `json:"protocol"`   // 协议类型
+	Timeout    time.Duration `json:"timeout"`    // 超时时间
 }
 
 // ServerConfig 服务端配置
 type ServerConfig struct {
-	ListenAddr     string            // 监听地址
-	AuthUsers      map[string]string // 认证用户映射
-	Protocol       string            // 协议类型
-	Timeout        time.Duration     // 超时时间
-	UpstreamConfig []UpstreamConfig  // 上游连接配置列表
-	EnableUpstream bool              // 是否启用上游连接
+	ListenAddr     string            `json:"listen_addr"`     // 监听地址
+	AuthUsers      map[string]string `json:"auth_users"`      // 认证用户映射
+	Protocol       string            `json:"protocol"`        // 协议类型
+	Timeout        time.Duration     `json:"timeout"`         // 超时时间
+	UpstreamConfig []UpstreamConfig  `json:"upstream_config"` // 上游连接配置列表
+	EnableUpstream bool              `json:"enable_upstream"` // 是否启用上游连接
 }
 
 // ProxyClient 代理客户端接口

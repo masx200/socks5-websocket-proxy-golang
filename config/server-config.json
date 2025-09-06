@@ -1,10 +1,10 @@
 {
   "listen_addr": ":1080",
   "protocol": "socks5",
-  "timeout": 30000000000,
+  "timeout": 60000000000,
   "auth_users": {
     "admin": "password123",
-    "user1": "pass123"
+    "user1": "pass123456"
   },
   "enable_upstream": true,
   "upstream_config": [
