@@ -59,12 +59,15 @@
 ### 测试发现的问题
 
 1. **WebSocket 服务器 nil pointer 错误**：
-   - 问题描述：在 `pkg/websocket/server.go` 的 `SelectUpstreamConnection` 方法中出现 nil pointer dereference 错误
+   - 问题描述：在 `pkg/websocket/server.go` 的 `SelectUpstreamConnection`
+     方法中出现 nil pointer dereference 错误
    - 错误位置：`upstream/selector.go:451` 行
-   - 原因：类型断言后的 selector 为 nil，导致调用 `SelectConnection` 方法时出现空指针异常
+   - 原因：类型断言后的 selector 为 nil，导致调用 `SelectConnection`
+     方法时出现空指针异常
 
 2. **SOCKS5 客户端认证错误**：
-   - 问题描述：在 `pkg/socks5/client.go` 的 `Authenticate` 方法中出现 "invalid SOCKS version" 错误
+   - 问题描述：在 `pkg/socks5/client.go` 的 `Authenticate` 方法中出现 "invalid
+     SOCKS version" 错误
    - 原因：手动实现 SOCKS5 协议时，协议版本检查失败
 
 ### 问题修复
@@ -72,7 +75,8 @@
 ✅ **已修复**：WebSocket 服务器 nil pointer 错误
 
 - 修复位置：`pkg/websocket/server.go` 的 `SelectUpstreamConnection` 方法
-- 修复方案：在类型断言后添加 nil 检查，确保 selector 不为 nil 后才调用 `SelectConnection` 方法
+- 修复方案：在类型断言后添加 nil 检查，确保 selector 不为 nil 后才调用
+  `SelectConnection` 方法
 - 修复代码：
   ```go
   if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
@@ -85,7 +89,8 @@
 ✅ **已修复**：SOCKS5 客户端认证错误
 
 - 修复位置：`pkg/socks5/client.go` 的 `Authenticate` 方法
-- 修复方案：使用 `golang.org/x/net/proxy.SOCKS5` 标准库来处理认证，而不是手动实现 SOCKS5 协议
+- 修复方案：使用 `golang.org/x/net/proxy.SOCKS5`
+  标准库来处理认证，而不是手动实现 SOCKS5 协议
 - 修复代码：
   ```go
   // 使用golang.org/x/net/proxy.SOCKS5处理认证
@@ -97,7 +102,8 @@
 
 ### 结论
 
-所有测试步骤均成功完成，WebSocket 和 SOCKS5 协议的服务端和客户端功能都正常工作。程序能够正确处理连接请求，并成功建立到目标主机的代理连接。测试中发现的关键问题已全部修复：
+所有测试步骤均成功完成，WebSocket 和 SOCKS5
+协议的服务端和客户端功能都正常工作。程序能够正确处理连接请求，并成功建立到目标主机的代理连接。测试中发现的关键问题已全部修复：
 
 1. WebSocket 服务器的 nil pointer 错误已通过添加 nil 检查解决
 2. SOCKS5 客户端的认证错误已通过使用标准库 `golang.org/x/net/proxy.SOCKS5` 解决
