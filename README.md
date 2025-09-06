@@ -371,7 +371,7 @@ type ProxyServer interface {
 
 ## 更新日志
 
-### v1.0.0 (2025-06-24)
+### v1.0.0 (2025-09-06)
 
 - ✅ 完成核心功能开发
 - ✅ 支持 SOCKS5 和 WebSocket 协议
