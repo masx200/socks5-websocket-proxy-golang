@@ -140,7 +140,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
-	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), timeout)
+	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprintf("%d", targetPort)), timeout)
 }
 
 // Close 关闭服务端
