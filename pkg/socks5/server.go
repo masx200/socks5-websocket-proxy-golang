@@ -195,7 +195,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 		fmt.Printf("[SOCKS5-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
 		var conn net.Conn
 		var err error
-		
+
 		// 尝试类型断言
 		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
 			conn, err = selector.SelectConnection(targetHost, targetPort)
@@ -204,7 +204,7 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 		} else {
 			err = fmt.Errorf("unknown selector type")
 		}
-		
+
 		if err != nil {
 			fmt.Printf("[SOCKS5-UPSTREAM] Upstream selector failed for target %s: %v\n", targetAddr, err)
 		} else {
@@ -251,11 +251,11 @@ func (s *SOCKS5Server) Shutdown() error {
 // ReloadConfig 重新加载配置
 func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 	fmt.Printf("[SOCKS5-SERVER] Reloading configuration...\n")
-	
+
 	// 更新配置
 	s.config = newConfig
 	s.authUsers = newConfig.AuthUsers
-	
+
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
 		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
@@ -265,7 +265,7 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 		s.selector = nil
 		fmt.Printf("[SOCKS5-SERVER] Upstream selector disabled\n")
 	}
-	
+
 	// 重新创建SOCKS5服务器实例
 	var socks5Config *socks5.Config = &socks5.Config{
 		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -274,37 +274,37 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 			if err != nil {
 				return nil, fmt.Errorf("invalid address format: %w", err)
 			}
-			
+
 			// 解析端口
 			portInt, err := net.LookupPort(network, port)
 			if err != nil {
 				return nil, fmt.Errorf("invalid port: %w", err)
 			}
-			
+
 			return s.SelectUpstreamConnection(host, portInt)
 		},
 		Logger: log.New(os.Stdout, "[SOCKS5] ", log.LstdFlags),
 	}
-	
+
 	// 如果有认证用户，添加用户名密码认证
 	if len(newConfig.AuthUsers) > 0 {
 		authenticator := socks5.UserPassAuthenticator{Credentials: socks5.StaticCredentials(newConfig.AuthUsers)}
 		socks5Config.AuthMethods = append(socks5Config.AuthMethods, authenticator)
 	}
-	
+
 	// 创建新的SOCKS5服务器
 	server, err := socks5.New(socks5Config)
 	if err != nil {
 		fmt.Printf("[SOCKS5-SERVER] Failed to create new SOCKS5 server: %v\n", err)
 		return fmt.Errorf("failed to create new SOCKS5 server: %w", err)
 	}
-	
+
 	s.server = server
-	
+
 	fmt.Printf("[SOCKS5-SERVER] Configuration reloaded successfully\n")
 	fmt.Printf("[SOCKS5-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
 	fmt.Printf("[SOCKS5-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
-	
+
 	return nil
 }
 

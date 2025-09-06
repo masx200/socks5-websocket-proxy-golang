@@ -29,11 +29,11 @@ type UpstreamConfig struct {
 
 // ClientConfig 客户端配置
 type ClientConfig struct {
-	Username   string        `json:"username"`   // 用户名
-	Password   string        `json:"password"`   // 密码
+	Username   string        `json:"username"`    // 用户名
+	Password   string        `json:"password"`    // 密码
 	ServerAddr string        `json:"server_addr"` // 服务器地址
-	Protocol   string        `json:"protocol"`   // 协议类型
-	Timeout    time.Duration `json:"timeout"`    // 超时时间
+	Protocol   string        `json:"protocol"`    // 协议类型
+	Timeout    time.Duration `json:"timeout"`     // 超时时间
 }
 
 // ServerConfig 服务端配置

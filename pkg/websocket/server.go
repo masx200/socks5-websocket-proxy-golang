@@ -187,11 +187,11 @@ func (s *WebSocketServer) Shutdown() error {
 // ReloadConfig 重新加载配置
 func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error {
 	fmt.Printf("[WEBSOCKET-SERVER] Reloading configuration...\n")
-	
+
 	// 更新配置
 	s.config = newConfig
 	s.authUsers = newConfig.AuthUsers
-	
+
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
 		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
@@ -201,11 +201,11 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 		s.selector = nil
 		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector disabled\n")
 	}
-	
+
 	fmt.Printf("[WEBSOCKET-SERVER] Configuration reloaded successfully\n")
 	fmt.Printf("[WEBSOCKET-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
 	fmt.Printf("[WEBSOCKET-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
-	
+
 	return nil
 }
 

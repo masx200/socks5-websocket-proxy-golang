@@ -13,25 +13,34 @@ import (
 
 // ConfigWatcher 配置文件监听器
 type ConfigWatcher struct {
-	watcher    *fsnotify.Watcher
-	configFile string
-	server     interfaces.ProxyServer
-	lastMod    time.Time
-	debounce   time.Duration
+	watcher          *fsnotify.Watcher
+	configFile       string
+	server           interfaces.ProxyServer
+	lastMod          time.Time
+	debounce         time.Duration
+	lastConfig       interfaces.ServerConfig
+	configLoaded     bool
+	onProtocolChange func(string) // 协议变更回调函数
 }
 
 // NewConfigWatcher 创建新的配置监听器
 func NewConfigWatcher(configFile string, server interfaces.ProxyServer) (*ConfigWatcher, error) {
+	return NewConfigWatcherWithCallback(configFile, server, nil)
+}
+
+// NewConfigWatcherWithCallback 创建新的配置监听器（带协议变更回调）
+func NewConfigWatcherWithCallback(configFile string, server interfaces.ProxyServer, onProtocolChange func(string)) (*ConfigWatcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file watcher: %w", err)
 	}
 
 	cw := &ConfigWatcher{
-		watcher:    watcher,
-		configFile: configFile,
-		server:     server,
-		debounce:   1 * time.Second, // 防抖时间，避免频繁重载
+		watcher:          watcher,
+		configFile:       configFile,
+		server:           server,
+		debounce:         1 * time.Second, // 防抖时间，避免频繁重载
+		onProtocolChange: onProtocolChange,
 	}
 
 	// 获取初始文件信息
@@ -49,6 +58,15 @@ func NewConfigWatcher(configFile string, server interfaces.ProxyServer) (*Config
 	configDir := filepath.Dir(absPath)
 	if err := watcher.Add(configDir); err != nil {
 		return nil, fmt.Errorf("failed to watch config directory: %w", err)
+	}
+
+	// 初始化配置
+	if config, err := interfaces.LoadConfig(configFile); err == nil {
+		cw.lastConfig = config
+		cw.configLoaded = true
+		log.Printf("[CONFIG-WATCHER] 初始配置加载成功")
+	} else {
+		log.Printf("[CONFIG-WATCHER] 初始配置加载失败: %v", err)
 	}
 
 	return cw, nil
@@ -141,6 +159,18 @@ func (cw *ConfigWatcher) handleConfigChange() {
 
 	log.Printf("[CONFIG-WATCHER] 配置文件加载成功")
 
+	// 检查协议是否变更
+	if cw.configLoaded && config.Protocol != cw.lastConfig.Protocol {
+		log.Printf("[CONFIG-WATCHER] 检测到协议变更: %s -> %s", cw.lastConfig.Protocol, config.Protocol)
+
+		// 如果有协议变更回调函数，调用它
+		if cw.onProtocolChange != nil {
+			log.Printf("[CONFIG-WATCHER] 调用协议变更回调函数")
+			cw.onProtocolChange(config.Protocol)
+			return
+		}
+	}
+
 	// 验证配置
 	if err := interfaces.ValidateConfig(config); err != nil {
 		log.Printf("[CONFIG-WATCHER] 配置验证失败: %v", err)
@@ -155,10 +185,12 @@ func (cw *ConfigWatcher) handleConfigChange() {
 		return
 	}
 
-	// 更新最后修改时间
+	// 更新最后修改时间和配置
 	if info, err := os.Stat(cw.configFile); err == nil {
 		cw.lastMod = info.ModTime()
 	}
+	cw.lastConfig = config
+	cw.configLoaded = true
 
 	log.Printf("[CONFIG-WATCHER] 配置重载成功")
 }

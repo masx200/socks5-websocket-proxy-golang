@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-config_module	"github.com/masx200/socks5-websocket-proxy-golang/pkg/config"
+	config_module "github.com/masx200/socks5-websocket-proxy-golang/pkg/config"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
 )
@@ -51,32 +51,54 @@ func main() {
 }
 
 // startServer 启动服务端
-func startServer(protocol, addr, username, password string, timeout time.Duration, configFile string, sigChan chan os.Signal) {
-	log.Printf("启动%s服务端，监听地址: %s\n", protocol, addr)
+func startServer(initialProtocol, addr, username, password string, timeout time.Duration, configFile string, sigChan chan os.Signal) {
+	var (
+		currentProtocol = initialProtocol
+		server          interfaces.ProxyServer
+		configWatcher   *config_module.ConfigWatcher
+		err             error
+	)
 
-	// 创建服务端配置
-	config := proxy.ServerConfig{
-		ListenAddr: addr,
-		Timeout:    timeout,
-	}
+	// 创建服务器重启通道
+	restartChan := make(chan string, 1)
 
-	// 如果有配置文件，从配置文件加载
-	if configFile != "" {
-		fileConfig, err := loadServerConfig(configFile)
-		if err != nil {
-			log.Printf("加载配置文件失败: %v，使用命令行配置\n", err)
-		} else {
-			config = fileConfig
+	// 服务器启动函数
+	startServerInstance := func(protocol string) (interfaces.ProxyServer, error) {
+		log.Printf("启动%s服务端，监听地址: %s\n", protocol, addr)
+
+		// 创建服务端配置
+		config := proxy.ServerConfig{
+			ListenAddr: addr,
+			Timeout:    timeout,
 		}
+
+		// 如果有配置文件，从配置文件加载
+		if configFile != "" {
+			fileConfig, err := loadServerConfig(configFile)
+			if err != nil {
+				log.Printf("加载配置文件失败: %v，使用命令行配置\n", err)
+			} else {
+				config = fileConfig
+			}
+		}
+
+		// 设置认证用户
+		if username != "" && password != "" {
+			config.AuthUsers = map[string]string{username: password}
+		}
+
+		// 创建服务端
+		return proxy.CreateServer(protocol, config)
 	}
 
-	// 设置认证用户
-	if username != "" && password != "" {
-		config.AuthUsers = map[string]string{username: password}
+	// 协议变更回调函数
+	onProtocolChange := func(newProtocol string) {
+		log.Printf("[MAIN] 检测到协议变更，准备重启服务器: %s -> %s", currentProtocol, newProtocol)
+		restartChan <- newProtocol
 	}
 
-	// 创建服务端
-	server, err := proxy.CreateServer(protocol, config)
+	// 启动初始服务器
+	server, err = startServerInstance(currentProtocol)
 	if err != nil {
 		log.Fatal("创建服务端失败:", err)
 	}
@@ -86,12 +108,11 @@ func startServer(protocol, addr, username, password string, timeout time.Duratio
 		log.Fatal("启动服务端失败:", err)
 	}
 
-	log.Printf("%s服务端已启动，按Ctrl+C停止\n", protocol)
+	log.Printf("%s服务端已启动，按Ctrl+C停止\n", currentProtocol)
 
 	// 创建配置监听器（如果指定了配置文件）
-	var configWatcher *config_module.ConfigWatcher
 	if configFile != "" {
-		configWatcher, err = config_module.NewConfigWatcher(configFile, server)
+		configWatcher, err = config_module.NewConfigWatcherWithCallback(configFile, server, onProtocolChange)
 		if err != nil {
 			log.Printf("创建配置监听器失败: %v，配置热重载功能不可用\n", err)
 		} else {
@@ -100,10 +121,55 @@ func startServer(protocol, addr, username, password string, timeout time.Duratio
 		}
 	}
 
-	// 等待停止信号
-	<-sigChan
-	log.Println("正在停止服务端...")
+	// 主循环，处理信号和协议变更
+	for {
+		select {
+		case <-sigChan:
+			log.Println("正在停止服务端...")
+			goto shutdown
+		case newProtocol := <-restartChan:
+			log.Printf("[MAIN] 收到协议变更信号，正在重启服务器: %s -> %s", currentProtocol, newProtocol)
 
+			// 停止当前服务器
+			if err := server.Shutdown(); err != nil {
+				log.Printf("[MAIN] 停止当前服务器时出错: %v", err)
+			}
+
+			// 停止配置监听器
+			if configWatcher != nil {
+				configWatcher.Stop()
+			}
+
+			// 更新协议
+			currentProtocol = newProtocol
+
+			// 启动新服务器
+			server, err = startServerInstance(currentProtocol)
+			if err != nil {
+				log.Fatalf("[MAIN] 创建新服务器失败: %v", err)
+			}
+
+			// 启动服务端
+			if err := server.Listen(); err != nil {
+				log.Fatalf("[MAIN] 启动新服务器失败: %v", err)
+			}
+
+			log.Printf("[MAIN] %s服务器已启动", currentProtocol)
+
+			// 重新创建配置监听器
+			if configFile != "" {
+				configWatcher, err = config_module.NewConfigWatcherWithCallback(configFile, server, onProtocolChange)
+				if err != nil {
+					log.Printf("[MAIN] 重新创建配置监听器失败: %v，配置热重载功能不可用\n", err)
+				} else {
+					configWatcher.Start()
+					log.Printf("[MAIN] 配置热重载已重新启用，监听文件: %s", configFile)
+				}
+			}
+		}
+	}
+
+shutdown:
 	// 停止配置监听器
 	if configWatcher != nil {
 		configWatcher.Stop()
