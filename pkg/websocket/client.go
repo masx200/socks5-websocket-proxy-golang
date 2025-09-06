@@ -21,10 +21,9 @@ func init() {
 
 // WebSocketClient WebSocket客户端实现
 type WebSocketClient struct {
-	config        interfaces.ClientConfig
-	conn          *websocket.Conn
-	httpClient    *http.Client
-	
+	config     interfaces.ClientConfig
+	conn       *websocket.Conn
+	httpClient *http.Client
 }
 
 // NewWebSocketClient 创建新的WebSocket客户端
@@ -49,7 +48,6 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 
 	// 创建请求头
 	headers := c.buildHeaders()
-
 
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
