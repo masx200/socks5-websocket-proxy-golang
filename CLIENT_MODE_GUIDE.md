@@ -98,29 +98,6 @@
 ./proxy-server.exe -mode client -protocol websocket -addr ws://proxy.example.com:8080/proxy -host www.example.com -port 80 -timeout 60
 ```
 
-## 配置文件使用
-
-除了命令行参数，您还可以使用配置文件来配置客户端模式。
-
-### 客户端配置文件格式
-
-```json
-{
-  "server_addr": "proxy.example.com:1080",
-  "protocol": "socks5",
-  "username": "admin",
-  "password": "password123",
-  "timeout": 30000000000
-}
-```
-
-### 使用配置文件启动
-
-```bash
-# 使用配置文件启动客户端
-./proxy-server.exe -mode client -config client-config.json -host www.example.com -port 80
-```
-
 ## 实际应用场景
 
 ### 1. 网络访问代理
@@ -281,13 +258,6 @@ telnet proxy.example.com 1080
 
 # 测试目标主机连通性
 telnet www.example.com 80
-```
-
-#### 3. 检查配置文件
-
-```bash
-# 验证配置文件格式
-cat client-config.json | jq .
 ```
 
 ## 性能优化
