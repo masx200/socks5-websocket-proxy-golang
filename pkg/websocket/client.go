@@ -143,14 +143,6 @@ func (c *WebSocketClient) buildWebSocketURL(targetHost string, targetPort int) (
 	query.Set("host", targetHost)
 	query.Set("port", fmt.Sprintf("%d", targetPort))
 
-	// 如果有用户名密码，添加到查询参数
-	if c.config.Username != "" {
-		query.Set("username", c.config.Username)
-	}
-	if c.config.Password != "" {
-		query.Set("password", c.config.Password)
-	}
-
 	// 构建WebSocket URL
 	wsScheme := "ws"
 	if serverURL.Scheme == "https" {
@@ -176,28 +168,18 @@ func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.H
 	headers.Set("Sec-WebSocket-Version", "13")
 	headers.Set("Sec-WebSocket-Key", generateWebSocketKey())
 
-	// 将认证信息序列化并添加到HTTP Headers
-	if c.config.Username != "" || c.config.Password != "" {
-		authInfo := c.serializeAuthInfo(targetHost, targetPort)
-		headers.Set("X-Proxy-Auth", authInfo)
+	// 直接将用户名和密码添加到HTTP Headers
+	if c.config.Username != "" {
+		headers.Set("X-Proxy-Username", c.config.Username)
+	}
+	if c.config.Password != "" {
+		headers.Set("X-Proxy-Password", c.config.Password)
 	}
 
 	return headers
 }
 
-// serializeAuthInfo 序列化认证信息
-func (c *WebSocketClient) serializeAuthInfo(targetHost string, targetPort int) string {
-	// 构建认证信息字符串
-	authInfo := fmt.Sprintf("username=%s&password=%s&host=%s&port=%d",
-		url.QueryEscape(c.config.Username),
-		url.QueryEscape(c.config.Password),
-		url.QueryEscape(targetHost),
-		targetPort)
 
-	// Base64编码
-	encoded := base64.StdEncoding.EncodeToString([]byte(authInfo))
-	return encoded
-}
 
 // generateWebSocketKey 生成WebSocket握手密钥
 func generateWebSocketKey() string {
