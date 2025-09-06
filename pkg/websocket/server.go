@@ -164,9 +164,13 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 	if s.selector != nil {
 		// 尝试类型断言
 		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
-			return selector.SelectConnection(targetHost, targetPort)
+			if selector != nil {
+				return selector.SelectConnection(targetHost, targetPort)
+			}
 		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok {
-			return selector.SelectConnection(targetHost, targetPort)
+			if selector != nil {
+				return selector.SelectConnection(targetHost, targetPort)
+			}
 		}
 	}
 
