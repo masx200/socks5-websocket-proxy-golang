@@ -383,3 +383,7 @@ type ProxyServer interface {
 - ✅ 实现 WebSocket 服务端连接日志功能
 - ✅ 完善客户端模式使用指南
 - ✅ 添加详细的连接状态监控和日志输出
+
+# socks5-websocket-proxy-golang
+
+A high-performance SOCKS5 proxy server with WebSocket support written in Go
