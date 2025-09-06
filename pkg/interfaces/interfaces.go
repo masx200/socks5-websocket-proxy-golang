@@ -7,12 +7,12 @@ import (
 )
 
 // UpstreamType 上游连接类型
-type UpstreamType int
+type UpstreamType string
 
 const (
-	UpstreamDirect    UpstreamType = iota // TCP直连
-	UpstreamSOCKS5                        // SOCKS5代理
-	UpstreamWebSocket                     // WebSocket代理
+	UpstreamDirect    UpstreamType = "direct"    // TCP直连
+	UpstreamSOCKS5    UpstreamType = "socks5"    // SOCKS5代理
+	UpstreamWebSocket UpstreamType = "websocket" // WebSocket代理
 )
 
 // UpstreamConfig 上游连接配置

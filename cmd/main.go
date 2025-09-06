@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -147,9 +149,28 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 }
 
 // loadServerConfig 从配置文件加载服务端配置
-// TODO: 实现配置文件解析
 func loadServerConfig(configFile string) (proxy.ServerConfig, error) {
-	// 这里应该实现配置文件的解析逻辑
-	// 可以支持JSON、YAML等格式
-	return proxy.ServerConfig{}, fmt.Errorf("配置文件解析功能尚未实现")
+	// 读取配置文件
+	data, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return proxy.ServerConfig{}, fmt.Errorf("读取配置文件失败: %v", err)
+	}
+
+	// 解析JSON配置文件
+	var config proxy.ServerConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return proxy.ServerConfig{}, fmt.Errorf("解析配置文件失败: %v", err)
+	}
+
+	// 验证必要字段
+	if config.ListenAddr == "" {
+		return proxy.ServerConfig{}, fmt.Errorf("配置文件缺少必要字段: listen_addr")
+	}
+
+	// 设置默认值
+	if config.Timeout == 0 {
+		config.Timeout = 30 * time.Second
+	}
+
+	return config, nil
 }
