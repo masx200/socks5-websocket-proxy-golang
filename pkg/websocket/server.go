@@ -187,11 +187,8 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 		}
 	}
 
-	// 如果没有找到认证信息，返回错误
-	if username == "" {
-		return "", "", "", 0, errors.New("no authentication information found")
-	}
-
+	// 允许没有认证信息的情况，返回空字符串而不是错误
+	// 实际的认证验证会在Authenticate方法中进行
 	return username, password, targetHost, targetPort, nil
 }
 

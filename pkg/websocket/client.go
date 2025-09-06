@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -162,11 +161,8 @@ func (c *WebSocketClient) buildWebSocketURL(targetHost string, targetPort int) (
 func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.Header {
 	headers := make(http.Header)
 
-	// 设置基本的WebSocket头
-	headers.Set("Upgrade", "websocket")
-	headers.Set("Connection", "Upgrade")
-	headers.Set("Sec-WebSocket-Version", "13")
-	headers.Set("Sec-WebSocket-Key", generateWebSocketKey())
+	// 注意：不手动设置标准的WebSocket握手头（Upgrade、Connection、Sec-WebSocket-Version、Sec-WebSocket-Key）
+	// 这些header由gorilla/websocket库自动设置，避免重复header错误
 
 	// 直接将用户名和密码添加到HTTP Headers
 	if c.config.Username != "" {
@@ -177,17 +173,6 @@ func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.H
 	}
 
 	return headers
-}
-
-// generateWebSocketKey 生成WebSocket握手密钥
-func generateWebSocketKey() string {
-	// 生成16字节的随机密钥
-	key := make([]byte, 16)
-	// 在实际应用中应该使用crypto/rand，这里简化处理
-	for i := range key {
-		key[i] = byte(i % 256)
-	}
-	return base64.StdEncoding.EncodeToString(key)
 }
 
 // NetConn 将WebSocket连接包装为net.Conn接口
