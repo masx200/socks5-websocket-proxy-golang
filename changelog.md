@@ -101,6 +101,13 @@
 - 优化错误处理逻辑，在selector类型检查失败时立即返回错误并记录详细日志
 - 确保当config.EnableUpstream为false时，selector被正确设置为nil，避免空指针解引用
 
+### WebSocket服务端interface{}类型检查优化实现
+
+- 添加isNilInterface函数，使用反射(reflect)正确检查interface{}类型是否真正为nil
+- 修复SelectUpstreamConnection方法中的nil检查逻辑，从简单的`s.selector != nil`改为`s.selector != nil && !isNilInterface(s.selector)`
+- 解决在Upstream selector enabled: false情况下仍进入选择器分支的问题
+- 添加reflect包导入，支持更严格的interface{}内部值检查，避免包含nil指针的interface{}被误判为有效值
+
 ## 注意事项
 
 - 配置文件修改后，系统会自动检测变化并应用新配置

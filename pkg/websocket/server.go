@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
 
@@ -186,7 +187,8 @@ func (s *WebSocketServer) Authenticate(username, password string) bool {
 func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
 	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
 
-	if s.selector != nil {
+	// 检查selector是否真正有效（不是nil且包含有效值）
+	if s.selector != nil && !isNilInterface(s.selector) {
 		fmt.Printf("[WEBSOCKET-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
 		var conn net.Conn
 		var err error
@@ -265,6 +267,16 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 	fmt.Printf("[WEBSOCKET-SERVER] Timeout: %v\n", newConfig.Timeout)
 
 	return nil
+}
+
+// isNilInterface 检查interface{}是否真正为nil（包括内部值为nil的情况）
+func isNilInterface(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	// 使用反射检查interface内部的值是否为nil
+	v := reflect.ValueOf(i)
+	return v.IsNil()
 }
 
 // parseAuthInfo 从HTTP请求中解析认证信息
