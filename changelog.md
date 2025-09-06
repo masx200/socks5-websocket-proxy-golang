@@ -45,6 +45,14 @@
 - **影响**:
   提高了协议安全性，减少了URL中暴露敏感信息的风险，使WebSocket连接URL更加简洁
 
+#### WebSocket服务端稳定性优化
+
+- **提交**: `websocket-fix` - fix(websocket): 修复服务端空指针解引用错误
+- **描述**:
+  修复WebSocket服务端在SelectUpstreamConnection方法中的空指针解引用错误，优化NewWebSocketServer函数的selector初始化逻辑
+- **影响**:
+  解决了因selector初始化不当导致的panic问题，提高了WebSocket服务端的稳定性和可靠性
+
 ### 文档更新 (Documentation)
 
 #### 文档清理和更新
@@ -85,6 +93,13 @@
 - 更新客户端buildHeaders方法，添加X-Proxy-Target-Host和X-Proxy-Target-Port头部
 - 修改服务端parseAuthInfo方法，从HTTP Headers中解析目标主机和端口信息
 - 保持原有认证机制和功能完整性，提高了数据传输安全性
+
+### WebSocket服务端稳定性优化实现
+
+- 修复NewWebSocketServer函数中selector变量的初始化逻辑，将类型从*upstream.UpstreamSelector改为interface{}
+- 在SelectUpstreamConnection方法中加强类型断言检查，同时检查类型和是否为nil
+- 优化错误处理逻辑，在selector类型检查失败时立即返回错误并记录详细日志
+- 确保当config.EnableUpstream为false时，selector被正确设置为nil，避免空指针解引用
 
 ## 注意事项
 

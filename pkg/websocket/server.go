@@ -27,9 +27,11 @@ type WebSocketServer struct {
 
 // NewWebSocketServer 创建新的WebSocket服务端
 func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
-	var selector *upstream.UpstreamSelector
+	var selector interface{}
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
 		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
+	} else {
+		selector = nil
 	}
 
 	return &WebSocketServer{
@@ -190,16 +192,14 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 		var err error
 
 		// 尝试类型断言
-		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok {
-			if selector != nil {
-				conn, err = selector.SelectConnection(targetHost, targetPort)
-			}
-		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok {
-			if selector != nil {
-				conn, err = selector.SelectConnection(targetHost, targetPort)
-			}
+		if selector, ok := s.selector.(*upstream.UpstreamSelector); ok && selector != nil {
+			conn, err = selector.SelectConnection(targetHost, targetPort)
+		} else if selector, ok := s.selector.(*upstream.DynamicUpstreamSelector); ok && selector != nil {
+			conn, err = selector.SelectConnection(targetHost, targetPort)
 		} else {
-			err = fmt.Errorf("unknown selector type")
+			err = fmt.Errorf("unknown or nil selector type")
+			fmt.Printf("[WEBSOCKET-UPSTREAM] Selector type check failed for target %s: %v\n", targetAddr, err)
+			return conn, err
 		}
 
 		if err != nil {
