@@ -78,24 +78,26 @@ go build -o proxy-server.exe cmd/main.go
 
 ```bash
 # 启动 SOCKS5 服务端
-./proxy-server -mode server -protocol socks5 -addr :1080 -username admin -password password123
+./proxy-server.exe -mode server -protocol socks5 -addr :1080 -username admin -password password123
 
 # 启动 WebSocket 服务端
-./proxy-server -mode server -protocol websocket -addr :8080 -username admin -password password123
+./proxy-server.exe -mode server -protocol websocket -addr :8080 -username admin -password password123
 ```
 
 #### 使用配置文件启动
 
 ```bash
-./proxy-server -mode server -config config/server-config.json
+./proxy-server.exe -mode server -config config/server-config.json
 ```
 
 ### 2. 客户端模式
 
 ```bash
 # 连接到目标主机
-./proxy-server -mode client -protocol socks5 -addr proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
+./proxy-server.exe -mode client -protocol socks5 -addr proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
 ```
+
+**详细使用指南**: 请查看 [客户端模式使用指南](CLIENT_MODE_GUIDE.md) 获取更详细的客户端模式使用说明，包括 SOCKS5 和 WebSocket 协议的具体配置方法和实际应用场景。
 
 ## 配置说明
 
@@ -317,7 +319,7 @@ type ProxyServer interface {
 系统提供详细的日志信息，可通过以下方式启用调试模式：
 
 ```bash
-./proxy-server -mode server -v
+./proxy-server.exe -mode server -v
 ```
 
 ## 贡献指南
