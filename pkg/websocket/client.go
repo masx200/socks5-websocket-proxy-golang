@@ -90,11 +90,17 @@ func (c *WebSocketClient) ForwardData(conn net.Conn) error {
 		for {
 			n, err := conn.Read(buffer)
 			if err != nil {
+				if c.connectionClosedCallback != nil {
+					c.connectionClosedCallback()
+				}
 				done <- err
 				return
 			}
 
 			if err := c.conn.WriteMessage(websocket.BinaryMessage, buffer[:n]); err != nil {
+				if c.connectionClosedCallback != nil {
+					c.connectionClosedCallback()
+				}
 				done <- err
 				return
 			}
@@ -106,11 +112,17 @@ func (c *WebSocketClient) ForwardData(conn net.Conn) error {
 		for {
 			_, message, err := c.conn.ReadMessage()
 			if err != nil {
+				if c.connectionClosedCallback != nil {
+					c.connectionClosedCallback()
+				}
 				done <- err
 				return
 			}
 
 			if _, err := conn.Write(message); err != nil {
+				if c.connectionClosedCallback != nil {
+					c.connectionClosedCallback()
+				}
 				done <- err
 				return
 			}

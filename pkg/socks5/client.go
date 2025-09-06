@@ -75,11 +75,17 @@ func (c *SOCKS5Client) ForwardData(conn net.Conn) error {
 
 	go func() {
 		_, err := io.Copy(c.conn, conn)
+		if c.connectionClosedCallback != nil {
+			c.connectionClosedCallback()
+		}
 		done <- err
 	}()
 
 	go func() {
 		_, err := io.Copy(conn, c.conn)
+		if c.connectionClosedCallback != nil {
+			c.connectionClosedCallback()
+		}
 		done <- err
 	}()
 
