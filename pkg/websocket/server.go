@@ -166,7 +166,7 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 	}
 
 	// 默认直连
-	return net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetHost, targetPort), s.config.Timeout)
+	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), s.config.Timeout)
 }
 
 // Shutdown 优雅关闭服务端

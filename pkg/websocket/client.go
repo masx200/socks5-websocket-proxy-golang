@@ -24,7 +24,7 @@ type WebSocketClient struct {
 	config        interfaces.ClientConfig
 	conn          *websocket.Conn
 	httpClient    *http.Client
-	authenticated bool
+	
 }
 
 // NewWebSocketClient 创建新的WebSocket客户端
@@ -48,7 +48,8 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	}
 
 	// 创建请求头
-	headers := c.buildHeaders(targetHost, targetPort)
+	headers := c.buildHeaders()
+
 
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
@@ -158,7 +159,7 @@ func (c *WebSocketClient) buildWebSocketURL(targetHost string, targetPort int) (
 }
 
 // buildHeaders 构建HTTP请求头
-func (c *WebSocketClient) buildHeaders(targetHost string, targetPort int) http.Header {
+func (c *WebSocketClient) buildHeaders() http.Header {
 	headers := make(http.Header)
 
 	// 注意：不手动设置标准的WebSocket握手头（Upgrade、Connection、Sec-WebSocket-Version、Sec-WebSocket-Key）
