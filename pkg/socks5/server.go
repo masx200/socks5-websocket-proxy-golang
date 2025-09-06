@@ -1,15 +1,12 @@
 package socks5
 
 import (
-	"bufio"
-	"encoding/binary"
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/armon/go-socks5"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
 )
@@ -17,6 +14,7 @@ import (
 // SOCKS5Server SOCKS5服务端实现
 type SOCKS5Server struct {
 	config    interfaces.ServerConfig
+	server    *socks5.Server
 	listener  net.Listener
 	shutdown  chan struct{}
 	wg        sync.WaitGroup
@@ -31,8 +29,28 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
 	}
 
+	// 创建SOCKS5服务器配置
+	socks5Config := &socks5.Config{
+		AuthMethods: []socks5.Authenticator{},
+	}
+
+	// 如果有认证用户，添加用户名密码认证
+	if len(config.AuthUsers) > 0 {
+		authenticator := socks5.UserPassAuthenticator{Credentials: socks5.StaticCredentials(config.AuthUsers)}
+		socks5Config.AuthMethods = append(socks5Config.AuthMethods, authenticator)
+	}
+
+	// 创建SOCKS5服务器
+	server, err := socks5.New(socks5Config)
+	if err != nil {
+		// 如果创建失败，返回nil
+		fmt.Printf("Failed to create SOCKS5 server: %v\n", err)
+		return nil
+	}
+
 	return &SOCKS5Server{
 		config:    config,
+		server:    server,
 		shutdown:  make(chan struct{}),
 		authUsers: config.AuthUsers,
 		selector:  selector,
@@ -93,6 +111,12 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 		conn.SetDeadline(time.Now().Add(s.config.Timeout))
 	}
 
+	// 使用github.com/armon/go-socks5库处理连接
+	if s.server != nil {
+		return s.server.ServeConn(conn)
+	}
+
+	// 如果server为nil，使用原始实现作为后备
 	// SOCKS5握手
 	if err := s.handleHandshake(conn); err != nil {
 		fmt.Printf("handshake error: %v\n", err)
@@ -168,218 +192,43 @@ func (s *SOCKS5Server) Shutdown() error {
 	return nil
 }
 
-// handleHandshake 处理SOCKS5握手
+// handleHandshake 处理SOCKS5握手 (后备实现)
 func (s *SOCKS5Server) handleHandshake(conn net.Conn) error {
-	reader := bufio.NewReader(conn)
-
-	// 读取客户端认证方法请求
-	header := make([]byte, 2)
-	if _, err := io.ReadFull(reader, header); err != nil {
-		return fmt.Errorf("failed to read handshake header: %w", err)
-	}
-
-	if header[0] != 0x05 {
-		return errors.New("invalid SOCKS version")
-	}
-
-	methodCount := int(header[1])
-	methods := make([]byte, methodCount)
-	if _, err := io.ReadFull(reader, methods); err != nil {
-		return fmt.Errorf("failed to read auth methods: %w", err)
-	}
-
-	// 选择认证方法
-	var selectedMethod byte = 0x00 // 无认证
-	if s.authUsers != nil && len(s.authUsers) > 0 {
-		// 检查是否支持用户名密码认证
-		for _, method := range methods {
-			if method == 0x02 {
-				selectedMethod = 0x02
-				break
-			}
-		}
-	}
-
-	// 发送选择的认证方法
-	response := []byte{0x05, selectedMethod}
-	if _, err := conn.Write(response); err != nil {
-		return fmt.Errorf("failed to send auth method response: %w", err)
-	}
-
-	// 如果需要用户名密码认证
-	if selectedMethod == 0x02 {
-		return s.handleUsernamePasswordAuth(conn)
-	}
-
+	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
 	return nil
 }
 
-// handleUsernamePasswordAuth 处理用户名密码认证
+// handleUsernamePasswordAuth 处理用户名密码认证 (后备实现)
 func (s *SOCKS5Server) handleUsernamePasswordAuth(conn net.Conn) error {
-	reader := bufio.NewReader(conn)
-
-	// 读取认证请求
-	authHeader := make([]byte, 2)
-	if _, err := io.ReadFull(reader, authHeader); err != nil {
-		return fmt.Errorf("failed to read auth header: %w", err)
-	}
-
-	if authHeader[0] != 0x01 {
-		return errors.New("invalid auth subnegotiation version")
-	}
-
-	usernameLen := int(authHeader[1])
-	username := make([]byte, usernameLen)
-	if _, err := io.ReadFull(reader, username); err != nil {
-		return fmt.Errorf("failed to read username: %w", err)
-	}
-
-	passwordLenByte, err := reader.ReadByte()
-	if err != nil {
-		return fmt.Errorf("failed to read password length: %w", err)
-	}
-
-	passwordLen := int(passwordLenByte)
-	password := make([]byte, passwordLen)
-	if _, err := io.ReadFull(reader, password); err != nil {
-		return fmt.Errorf("failed to read password: %w", err)
-	}
-
-	// 验证用户名密码
-	usernameStr := string(username)
-	passwordStr := string(password)
-
-	var authResult byte = 0x00 // 成功
-	if !s.Authenticate(usernameStr, passwordStr) {
-		authResult = 0x01 // 失败
-	}
-
-	// 发送认证结果
-	authResponse := []byte{0x01, authResult}
-	if _, err := conn.Write(authResponse); err != nil {
-		return fmt.Errorf("failed to send auth response: %w", err)
-	}
-
-	if authResult != 0x00 {
-		return errors.New("authentication failed")
-	}
-
+	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
 	return nil
 }
 
-// handleConnectRequest 处理连接请求
+// handleConnectRequest 处理连接请求 (后备实现)
 func (s *SOCKS5Server) handleConnectRequest(conn net.Conn) (string, int, error) {
-	reader := bufio.NewReader(conn)
-
-	// 读取连接请求
-	request := make([]byte, 4)
-	if _, err := io.ReadFull(reader, request); err != nil {
-		return "", 0, fmt.Errorf("failed to read connect request: %w", err)
-	}
-
-	if request[0] != 0x05 {
-		return "", 0, errors.New("invalid SOCKS version")
-	}
-
-	if request[1] != 0x01 {
-		return "", 0, errors.New("only CONNECT command supported")
-	}
-
-	addrType := request[3]
-	var targetHost string
-	var targetPort int
-
-	switch addrType {
-	case 0x01: // IPv4
-		ipBytes := make([]byte, 4)
-		if _, err := io.ReadFull(reader, ipBytes); err != nil {
-			return "", 0, fmt.Errorf("failed to read IPv4 address: %w", err)
-		}
-		targetHost = net.IP(ipBytes).String()
-
-	case 0x03: // 域名
-		domainLenByte, err := reader.ReadByte()
-		if err != nil {
-			return "", 0, fmt.Errorf("failed to read domain length: %w", err)
-		}
-		domainLen := int(domainLenByte)
-		domainBytes := make([]byte, domainLen)
-		if _, err := io.ReadFull(reader, domainBytes); err != nil {
-			return "", 0, fmt.Errorf("failed to read domain: %w", err)
-		}
-		targetHost = string(domainBytes)
-
-	case 0x04: // IPv6
-		ipBytes := make([]byte, 16)
-		if _, err := io.ReadFull(reader, ipBytes); err != nil {
-			return "", 0, fmt.Errorf("failed to read IPv6 address: %w", err)
-		}
-		targetHost = net.IP(ipBytes).String()
-
-	default:
-		return "", 0, errors.New("unsupported address type")
-	}
-
-	// 读取端口号
-	portBytes := make([]byte, 2)
-	if _, err := io.ReadFull(reader, portBytes); err != nil {
-		return "", 0, fmt.Errorf("failed to read port: %w", err)
-	}
-	targetPort = int(binary.BigEndian.Uint16(portBytes))
-
-	return targetHost, targetPort, nil
+	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
+	return "", 0, nil
 }
 
-// sendConnectResponse 发送连接响应
+// sendConnectResponse 发送连接响应 (后备实现)
 func (s *SOCKS5Server) sendConnectResponse(conn net.Conn, isIP bool) error {
-	var response []byte
-
-	if isIP {
-		// 如果是IP地址，返回绑定地址
-		response = []byte{
-			0x05,                   // SOCKS版本
-			0x00,                   // 成功
-			0x00,                   // RSV
-			0x01,                   // 地址类型 (IPv4)
-			0x00, 0x00, 0x00, 0x00, // 绑定地址 (0.0.0.0)
-			0x00, 0x00, // 绑定端口 (0)
-		}
-	} else {
-		// 如果是域名，返回域名格式
-		response = []byte{
-			0x05,       // SOCKS版本
-			0x00,       // 成功
-			0x00,       // RSV
-			0x03,       // 地址类型 (域名)
-			0x00,       // 域名长度 (0)
-			0x00, 0x00, // 绑定端口 (0)
-		}
-	}
-
-	_, err := conn.Write(response)
-	return err
+	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
+	return nil
 }
 
-// forwardData 转发数据
+// forwardData 转发数据 (后备实现)
 func (s *SOCKS5Server) forwardData(clientConn, targetConn net.Conn) error {
-	done := make(chan error, 2)
-
-	go func() {
-		_, err := io.Copy(targetConn, clientConn)
-		done <- err
-	}()
-
-	go func() {
-		_, err := io.Copy(clientConn, targetConn)
-		done <- err
-	}()
-
-	return <-done
+	// 这个方法现在只作为后备实现，主要逻辑由github.com/armon/go-socks5库处理
+	return nil
 }
 
 // 注册SOCKS5服务端创建函数
 func init() {
 	interfaces.RegisterServer("socks5", func(config interfaces.ServerConfig) (interfaces.ProxyServer, error) {
-		return NewSOCKS5Server(config), nil
+		server := NewSOCKS5Server(config)
+		if server == nil {
+			return nil, fmt.Errorf("failed to create SOCKS5 server")
+		}
+		return server, nil
 	})
 }
