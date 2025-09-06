@@ -237,6 +237,70 @@ func (s *SOCKS5Server) Shutdown() error {
 	return nil
 }
 
+// ReloadConfig 重新加载配置
+func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
+	fmt.Printf("[SOCKS5-SERVER] Reloading configuration...\n")
+	
+	// 更新配置
+	s.config = newConfig
+	s.authUsers = newConfig.AuthUsers
+	
+	// 更新上游选择器
+	if newConfig.EnableUpstream {
+		selector, err := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig)
+		if err != nil {
+			fmt.Printf("[SOCKS5-SERVER] Failed to create upstream selector: %v\n", err)
+			return fmt.Errorf("failed to create upstream selector: %w", err)
+		}
+		s.selector = selector
+		fmt.Printf("[SOCKS5-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
+	} else {
+		s.selector = nil
+		fmt.Printf("[SOCKS5-SERVER] Upstream selector disabled\n")
+	}
+	
+	// 重新创建SOCKS5服务器实例
+	var socks5Config *socks5.Config = &socks5.Config{
+		Dial: func(network, addr string) (net.Conn, error) {
+			// 解析地址
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid address format: %w", err)
+			}
+			
+			// 解析端口
+			portInt, err := net.LookupPort(network, port)
+			if err != nil {
+				return nil, fmt.Errorf("invalid port: %w", err)
+			}
+			
+			return s.SelectUpstreamConnection(host, portInt)
+		},
+		Logger: log.New(os.Stdout, "[SOCKS5] ", log.LstdFlags),
+	}
+	
+	// 如果有认证用户，添加用户名密码认证
+	if len(newConfig.AuthUsers) > 0 {
+		authenticator := socks5.UserPassAuthenticator{Credentials: socks5.StaticCredentials(newConfig.AuthUsers)}
+		socks5Config.AuthMethods = append(socks5Config.AuthMethods, authenticator)
+	}
+	
+	// 创建新的SOCKS5服务器
+	server, err := socks5.New(socks5Config)
+	if err != nil {
+		fmt.Printf("[SOCKS5-SERVER] Failed to create new SOCKS5 server: %v\n", err)
+		return fmt.Errorf("failed to create new SOCKS5 server: %w", err)
+	}
+	
+	s.server = server
+	
+	fmt.Printf("[SOCKS5-SERVER] Configuration reloaded successfully\n")
+	fmt.Printf("[SOCKS5-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
+	fmt.Printf("[SOCKS5-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
+	
+	return nil
+}
+
 // 注册SOCKS5服务端创建函数
 func init() {
 	interfaces.RegisterServer("socks5", func(config interfaces.ServerConfig) (interfaces.ProxyServer, error) {

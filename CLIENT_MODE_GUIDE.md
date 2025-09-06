@@ -243,12 +243,7 @@
 
 ### 调试技巧
 
-#### 1. 启用详细日志
 
-```bash
-# 启用详细日志输出（如果支持）
-./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy.example.com:1080 -host target.com -port 80 -v
-```
 
 #### 2. 测试连接连通性
 

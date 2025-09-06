@@ -344,13 +344,6 @@ type ProxyServer interface {
 # 2025/06/24 10:30:25 SOCKS5 connection from 192.168.1.100:54321 failed: connection timeout
 ```
 
-#### 调试模式
-
-启用详细调试信息：
-
-```bash
-./proxy-server.exe -mode server -v
-```
 
 ## 贡献指南
 

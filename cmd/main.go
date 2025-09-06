@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+config_module	"github.com/masx200/socks5-websocket-proxy-golang/pkg/config"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
 )
 
@@ -86,9 +88,26 @@ func startServer(protocol, addr, username, password string, timeout time.Duratio
 
 	log.Printf("%s服务端已启动，按Ctrl+C停止\n", protocol)
 
+	// 创建配置监听器（如果指定了配置文件）
+	var configWatcher *config_module.ConfigWatcher
+	if configFile != "" {
+		configWatcher, err = config_module.NewConfigWatcher(configFile, server)
+		if err != nil {
+			log.Printf("创建配置监听器失败: %v，配置热重载功能不可用\n", err)
+		} else {
+			configWatcher.Start()
+			log.Printf("配置热重载已启用，监听文件: %s", configFile)
+		}
+	}
+
 	// 等待停止信号
 	<-sigChan
 	log.Println("正在停止服务端...")
+
+	// 停止配置监听器
+	if configWatcher != nil {
+		configWatcher.Stop()
+	}
 
 	// 优雅关闭
 	if err := server.Shutdown(); err != nil {
@@ -149,22 +168,22 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 }
 
 // loadServerConfig 从配置文件加载服务端配置
-func loadServerConfig(configFile string) (proxy.ServerConfig, error) {
+func loadServerConfig(configFile string) (interfaces.ServerConfig, error) {
 	// 读取配置文件
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return proxy.ServerConfig{}, fmt.Errorf("读取配置文件失败: %v", err)
+		return interfaces.ServerConfig{}, fmt.Errorf("读取配置文件失败: %v", err)
 	}
 
 	// 解析JSON配置文件
-	var config proxy.ServerConfig
+	var config interfaces.ServerConfig
 	if err := json.Unmarshal(data, &config); err != nil {
-		return proxy.ServerConfig{}, fmt.Errorf("解析配置文件失败: %v", err)
+		return interfaces.ServerConfig{}, fmt.Errorf("解析配置文件失败: %v", err)
 	}
 
 	// 验证必要字段
 	if config.ListenAddr == "" {
-		return proxy.ServerConfig{}, fmt.Errorf("配置文件缺少必要字段: listen_addr")
+		return interfaces.ServerConfig{}, fmt.Errorf("配置文件缺少必要字段: listen_addr")
 	}
 
 	// 设置默认值

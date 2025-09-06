@@ -58,6 +58,7 @@ type ProxyServer interface {
 	Authenticate(username, password string) bool
 	SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error)
 	Shutdown() error
+	ReloadConfig(config ServerConfig) error
 }
 
 // CreateClientFunc 客户端创建函数类型

@@ -179,6 +179,35 @@ func (s *WebSocketServer) Shutdown() error {
 	return nil
 }
 
+// ReloadConfig 重新加载配置
+func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error {
+	fmt.Printf("[WEBSOCKET-SERVER] Reloading configuration...\n")
+	
+	// 更新配置
+	s.config = newConfig
+	s.authUsers = newConfig.AuthUsers
+	
+	// 更新上游选择器
+	if newConfig.EnableUpstream {
+		selector, err := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig)
+		if err != nil {
+			fmt.Printf("[WEBSOCKET-SERVER] Failed to create upstream selector: %v\n", err)
+			return fmt.Errorf("failed to create upstream selector: %w", err)
+		}
+		s.selector = selector
+		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
+	} else {
+		s.selector = nil
+		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector disabled\n")
+	}
+	
+	fmt.Printf("[WEBSOCKET-SERVER] Configuration reloaded successfully\n")
+	fmt.Printf("[WEBSOCKET-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
+	fmt.Printf("[WEBSOCKET-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
+	
+	return nil
+}
+
 // parseAuthInfo 从HTTP请求中解析认证信息
 func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, targetHost string, targetPort int, err error) {
 	// 直接从HTTP Headers中获取用户名和密码
