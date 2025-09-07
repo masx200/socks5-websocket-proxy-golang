@@ -2,6 +2,27 @@
 
 本文档记录了项目的所有重要变更。
 
+## [2025-09-07]
+
+### Bug修复 (Bug Fixes)
+
+#### SOCKS5服务器类型转换错误修复
+
+- **提交**: `2ac44df` - fix(socks5): 修复panic: interface conversion: net.Addr
+  is net.pipeAddr, not *net.TCPAddr
+- **描述**:
+  修复了在使用WebSocket上游连接时SOCKS5服务器发生的类型转换错误，解决了net.pipeAddr无法转换为*net.TCPAddr的问题
+- **影响**:
+  解决了服务运行时的panic崩溃问题，提高了WebSocket上游连接的稳定性和可靠性
+
+#### SOCKS5客户端NetConn方法实现
+
+- **提交**: `2ac44df` - fix(socks5): 实现SOCKS5客户端NetConn方法
+- **描述**:
+  实现了SOCKS5客户端中未完成的NetConn方法，替换了原来的panic("unimplemented")实现
+- **影响**:
+  使SOCKS5客户端完整实现了ProxyClient接口，避免了调用NetConn方法时的程序崩溃
+
 ## [2025-09-06]
 
 ### 新增功能 (Features)
@@ -126,6 +147,22 @@
 - 移除不再使用的isConnectionAlive函数和reflect包导入，清理代码提高可维护性
 - 通过callback机制实现连接关闭时自动退出程序，提高效率和可靠性
 
+### SOCKS5服务器类型转换错误修复实现
+
+- 在pkg/upstream/selector.go中添加tcpAddrWrapper结构体，包装*net.TCPAddr以解决类型兼容性问题
+- 实现newTCPAddrWrapper函数，根据不同地址情况返回兼容的TCP地址包装器
+- 修改SOCKS5ConnWrapper和WebSocketConnWrapper的LocalAddr()和RemoteAddr()方法，将dummyAddr替换为tcpAddrWrapper
+- 确保连接包装器返回的地址类型与SOCKS5库期望的*net.TCPAddr类型兼容
+- 解决了net.Pipe()创建的连接返回net.pipeAddr类型导致的类型转换panic问题
+
+### SOCKS5客户端NetConn方法实现
+
+- 修改pkg/socks5/client.go中的NetConn方法，将panic("unimplemented")替换为return
+  c.conn
+- 使NetConn方法正确返回SOCKS5Client实例中的底层网络连接对象
+- 确保SOCKS5客户端完整实现了interfaces.ProxyClient接口的所有方法
+- 避免了调用NetConn方法时的程序崩溃，提高了接口的完整性和可用性
+
 ## 注意事项
 
 - 配置文件修改后，系统会自动检测变化并应用新配置
@@ -135,4 +172,4 @@
 
 ---
 
-_最后更新时间: 2025-09-06_
+_最后更新时间: 2025-09-07_
