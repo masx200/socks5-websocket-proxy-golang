@@ -95,8 +95,8 @@
 
 - 项目初始化：✅ 完成
 - 核心开发：✅ 完成（上游连接选择器已完成）
-- 配置管理：🔄 进行中（配置文件解析已完成）
-- 测试验证：⏳ 待开始
+- 配置管理：✅ 完成（配置文件解析已完成）
+- 测试验证：✅ 完成（DynamicUpstreamSelector负载均衡策略测试已完成）
 - 文档完善：🔄 进行中（配置文件模板已创建）
 
 ## 依赖库
@@ -135,3 +135,4 @@
   isNilInterface 函数使用反射正确检查包含 nil 指针的 interface{}，解决在
   Upstream selector enabled: false 情况下仍进入选择器分支的问题
 - 2025-09-06：实现客户端连接关闭callback功能，为ProxyClient接口添加SetConnectionClosedCallback方法，支持连接关闭时自动退出程序，替换原来的轮询检查机制，提高效率和可靠性
+- 2025-09-07：实现DynamicUpstreamSelector负载均衡策略测试，完成selectRoundRobin、selectRandom、selectWeighted、selectFailover四种策略的全面测试用例，包括单元测试、并发测试和基准测试，确保代码质量和性能
