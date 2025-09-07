@@ -21,6 +21,7 @@ func init() {
 
 // WebSocketClient WebSocket客户端实现
 type WebSocketClient struct {
+	authenticated            bool
 	config                   interfaces.ClientConfig
 	conn                     *websocket.Conn
 	httpClient               *http.Client
@@ -61,6 +62,7 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	}
 
 	c.conn = conn
+	c.authenticated = true
 	return nil
 }
 

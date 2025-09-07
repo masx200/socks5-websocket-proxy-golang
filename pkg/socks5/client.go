@@ -48,6 +48,7 @@ func (c *SOCKS5Client) Connect(targetHost string, targetPort int) error {
 	}
 
 	c.conn = conn
+	c.authenticated = true
 	return nil
 }
 
