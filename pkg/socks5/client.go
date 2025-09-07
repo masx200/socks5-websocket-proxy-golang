@@ -1,7 +1,7 @@
 package socks5
 
 import (
-	"bytes"
+	// "bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -216,22 +216,22 @@ func (w *tlsDialerWrapper) Dial(network, addr string) (net.Conn, error) {
 }
 
 // buildAuthRequest 构建认证请求
-func (c *SOCKS5Client) buildAuthRequest(username, password string) []byte {
-	var buf bytes.Buffer
+// func (c *SOCKS5Client) buildAuthRequest(username, password string) []byte {
+// 	var buf bytes.Buffer
 
-	// 认证子协商版本
-	buf.WriteByte(0x01)
+// 	// 认证子协商版本
+// 	buf.WriteByte(0x01)
 
-	// 用户名长度和用户名
-	buf.WriteByte(byte(len(username)))
-	buf.WriteString(username)
+// 	// 用户名长度和用户名
+// 	buf.WriteByte(byte(len(username)))
+// 	buf.WriteString(username)
 
-	// 密码长度和密码
-	buf.WriteByte(byte(len(password)))
-	buf.WriteString(password)
+// 	// 密码长度和密码
+// 	buf.WriteByte(byte(len(password)))
+// 	buf.WriteString(password)
 
-	return buf.Bytes()
-}
+// 	return buf.Bytes()
+// }
 
 // 注册SOCKS5客户端创建函数
 func init() {
