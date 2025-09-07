@@ -65,15 +65,15 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 }
 
 // Authenticate 进行身份认证
-func (c *WebSocketClient) Authenticate(username, password string) error {
-	if c.conn == nil {
-		return errors.New("connection not established")
-	}
+// func (c *WebSocketClient) Authenticate(username, password string) error {
+// 	if c.conn == nil {
+// 		return errors.New("connection not established")
+// 	}
 
-	// WebSocket认证通过HTTP Headers在连接时已经完成
-	// 这里只需要验证连接是否成功建立
-	return nil
-}
+// 	// WebSocket认证通过HTTP Headers在连接时已经完成
+// 	// 这里只需要验证连接是否成功建立
+// 	return nil
+// }
 
 // ForwardData 转发数据
 func (c *WebSocketClient) ForwardData(conn net.Conn) error {

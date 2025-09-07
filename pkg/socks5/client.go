@@ -52,13 +52,13 @@ func (c *SOCKS5Client) Connect(targetHost string, targetPort int) error {
 }
 
 // Authenticate 进行身份认证
-func (c *SOCKS5Client) Authenticate(username, password string) error {
-	// 使用golang.org/x/net/proxy.SOCKS5处理认证
-	// 由于Connect方法已经使用了proxy.SOCKS5拨号器，认证已经在拨号过程中完成
-	// 这里只需要标记认证状态即可
-	c.authenticated = true
-	return nil
-}
+// func (c *SOCKS5Client) Authenticate(username, password string) error {
+// 	// 使用golang.org/x/net/proxy.SOCKS5处理认证
+// 	// 由于Connect方法已经使用了proxy.SOCKS5拨号器，认证已经在拨号过程中完成
+// 	// 这里只需要标记认证状态即可
+// 	c.authenticated = true
+// 	return nil
+// }
 
 // ForwardData 转发数据
 func (c *SOCKS5Client) ForwardData(conn net.Conn) error {

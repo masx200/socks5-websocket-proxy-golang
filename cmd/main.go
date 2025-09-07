@@ -209,9 +209,10 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 
 	// 进行认证
 	if username != "" && password != "" {
-		if err := client.Authenticate(username, password); err != nil {
-			log.Fatal("认证失败:", err)
-		}
+		log.Println("正在认证...", username,password)
+		// if err := client.Authenticate(username, password); err != nil {
+		// 	log.Fatal("认证失败:", err)
+		// }
 	}
 
 	log.Printf("已连接到目标主机 %s:%d\n", targetHost, targetPort)

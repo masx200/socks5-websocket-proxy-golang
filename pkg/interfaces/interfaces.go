@@ -49,7 +49,7 @@ type ServerConfig struct {
 // ProxyClient 代理客户端接口
 type ProxyClient interface {
 	Connect(host string, port int) error
-	Authenticate(username, password string) error
+	// Authenticate(username, password string) error
 	ForwardData(conn net.Conn) error
 	Close() error
 	SetConnectionClosedCallback(callback func()) error
