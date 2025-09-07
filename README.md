@@ -370,3 +370,9 @@ type ProxyServer interface {
 # socks5-websocket-proxy-golang
 
 A high-performance SOCKS5 proxy server with WebSocket support written in Go
+
+## 使用 curl 测试
+
+```bash
+curl -v  -I   https://www.baidu.com  -x socks5://localhost:9999
+```

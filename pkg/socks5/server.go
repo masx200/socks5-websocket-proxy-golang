@@ -28,9 +28,9 @@ type SOCKS5Server struct {
 
 // NewSOCKS5Server 创建新的SOCKS5服务端
 func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
-	var selector *upstream.UpstreamSelector
+	var selector interface{}
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
-		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
+		selector = upstream.NewDynamicUpstreamSelector(config.UpstreamConfig, upstream.StrategyRoundRobin)
 	}
 
 	// 创建自定义日志记录器
@@ -40,12 +40,6 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	socks5Config := &socks5.Config{
 		AuthMethods: []socks5.Authenticator{},
 		Logger:      logger,
-		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dailer := net.Dialer{}
-
-			log.Printf("[SOCKS5-LIB] Dial %s %s", network, addr)
-			return dailer.DialContext(ctx, network, addr)
-		},
 	}
 
 	// 如果有认证用户，添加用户名密码认证
@@ -62,7 +56,7 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 		return nil
 	}
 
-	return &SOCKS5Server{
+	socks5Server := &SOCKS5Server{
 		config:    config,
 		server:    server,
 		shutdown:  make(chan struct{}),
@@ -70,6 +64,34 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 		selector:  selector,
 		logger:    logger,
 	}
+
+	// 现在设置Dial函数，这样可以访问到完整的server实例
+	socks5Config.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		// 解析地址
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid address format: %w", err)
+		}
+
+		// 解析端口
+		portInt, err := net.LookupPort(network, port)
+		if err != nil {
+			return nil, fmt.Errorf("invalid port: %w", err)
+		}
+
+		// 使用server实例的SelectUpstreamConnection方法
+		return socks5Server.SelectUpstreamConnection(host, portInt)
+	}
+
+	// 重新创建server实例以应用新的Dial函数
+	server, err = socks5.New(socks5Config)
+	if err != nil {
+		fmt.Printf("[SOCKS5-SERVER] Failed to recreate SOCKS5 server with Dial function: %v\n", err)
+		return nil
+	}
+	socks5Server.server = server
+
+	return socks5Server
 }
 
 // Listen 开始监听连接
