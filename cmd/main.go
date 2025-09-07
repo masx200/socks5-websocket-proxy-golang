@@ -27,6 +27,10 @@ func main() {
 	targetHost := flag.String("host", "", "目标主机(客户端模式)")
 	targetPort := flag.Int("port", 0, "目标端口(客户端模式)")
 	configFile := flag.String("config", "", "配置文件路径")
+	upstreamType := flag.String("upstream-type", "", "上游连接类型: direct, socks5, websocket")
+	upstreamAddress := flag.String("upstream-address", "", "上游代理地址")
+	upstreamUsername := flag.String("upstream-username", "", "上游代理用户名")
+	upstreamPassword := flag.String("upstream-password", "", "上游代理密码")
 
 	flag.Parse()
 
@@ -39,7 +43,7 @@ func main() {
 
 	switch *mode {
 	case "server":
-		startServer(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *configFile, sigChan)
+		startServer(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *configFile, *upstreamType, *upstreamAddress, *upstreamUsername, *upstreamPassword, sigChan)
 	case "client":
 		if *targetHost == "" || *targetPort == 0 {
 			log.Fatal("客户端模式需要指定目标主机和端口 (-host 和 -port)")
@@ -51,7 +55,7 @@ func main() {
 }
 
 // startServer 启动服务端
-func startServer(initialProtocol, addr, username, password string, timeout time.Duration, configFile string, sigChan chan os.Signal) {
+func startServer(initialProtocol, addr, username, password string, timeout time.Duration, configFile, upstreamType, upstreamAddress, upstreamUsername, upstreamPassword string, sigChan chan os.Signal) {
 	var (
 		currentProtocol = initialProtocol
 		server          interfaces.ProxyServer
@@ -85,6 +89,20 @@ func startServer(initialProtocol, addr, username, password string, timeout time.
 		// 设置认证用户
 		if username != "" && password != "" {
 			config.AuthUsers = map[string]string{username: password}
+		}
+
+		// 设置上游配置（如果通过命令行参数指定）
+		if upstreamType != "" {
+			upstreamConfig := interfaces.UpstreamConfig{
+				Type:          interfaces.UpstreamType(upstreamType),
+				ProxyAddress:  upstreamAddress,
+				ProxyUsername: upstreamUsername,
+				ProxyPassword: upstreamPassword,
+				Timeout:       timeout,
+			}
+			config.UpstreamConfig = []interfaces.UpstreamConfig{upstreamConfig}
+			config.EnableUpstream = true
+			log.Printf("使用命令行参数设置上游配置: 类型=%s, 地址=%s", upstreamType, upstreamAddress)
 		}
 
 		// 创建服务端
@@ -209,7 +227,7 @@ func startClient(protocol, serverAddr, username, password string, timeout time.D
 
 	// 进行认证
 	if username != "" && password != "" {
-		log.Println("正在认证...", username,password)
+		log.Println("正在认证...", username, password)
 		// if err := client.Authenticate(username, password); err != nil {
 		// 	log.Fatal("认证失败:", err)
 		// }

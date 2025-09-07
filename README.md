@@ -84,6 +84,10 @@ go build -o proxy-server.exe cmd/main.go
 ./proxy-server.exe -mode server -protocol websocket -addr :8080 -username admin -password password123
 ```
 
+```bash
+./proxy-server.exe -mode server -protocol socks5 -addr :1080 -upstream-type socks5 -upstream-address tcp://127.0.0.1:1081 -upstream-username user -upstream-password pass
+```
+
 #### 使用配置文件启动
 
 ```bash
@@ -330,19 +334,6 @@ type ProxyServer interface {
 
 - **SOCKS5 服务端**: 记录客户端连接地址、认证状态、连接建立和处理结果
 - **WebSocket 服务端**: 记录连接尝试、认证成功/失败、升级失败及连接处理结果
-
-#### 日志输出示例
-
-```bash
-# 启动服务端（自动输出连接日志到 stdout）
-./proxy-server.exe -mode server -protocol socks5 -addr :1080
-
-# 输出示例：
-# 2025/06/24 10:30:15 SOCKS5 server listening on :1080
-# 2025/06/24 10:30:20 New SOCKS5 connection from 192.168.1.100:54321
-# 2025/06/24 10:30:20 SOCKS5 connection from 192.168.1.100:54321 handled successfully
-# 2025/06/24 10:30:25 SOCKS5 connection from 192.168.1.100:54321 failed: connection timeout
-```
 
 ## 贡献指南
 

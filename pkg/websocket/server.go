@@ -297,7 +297,7 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 	}
 
 	// 记录解析的认证信息
-	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', targetHost: '%s', targetPort: %d\n", 
+	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', targetHost: '%s', targetPort: %d\n",
 		username, targetHost, targetPort)
 
 	// 允许没有认证信息的情况，返回空字符串而不是错误

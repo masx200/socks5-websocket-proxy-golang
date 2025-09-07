@@ -118,7 +118,8 @@
 
 ### 客户端连接关闭callback功能实现
 
-- 在ProxyClient接口中添加SetConnectionClosedCallback(callback func()) error方法声明
+- 在ProxyClient接口中添加SetConnectionClosedCallback(callback func())
+  error方法声明
 - 修改cmd/main.go中的startClient函数，使用callback机制替换原来的轮询检查连接状态方式
 - 在SOCKS5Client和WebSocketClient结构体中添加connectionClosedCallback func()字段
 - 实现SetConnectionClosedCallback方法用于设置回调函数，在Close方法中调用connectionClosedCallback
