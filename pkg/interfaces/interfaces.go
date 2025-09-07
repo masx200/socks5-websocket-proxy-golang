@@ -53,6 +53,7 @@ type ProxyClient interface {
 	ForwardData(conn net.Conn) error
 	Close() error
 	SetConnectionClosedCallback(callback func()) error
+	NetConn() net.Conn
 }
 
 // ProxyServer 代理服务端接口

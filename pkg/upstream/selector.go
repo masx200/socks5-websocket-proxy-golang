@@ -316,14 +316,14 @@ func (w *SOCKS5ConnWrapper) LocalAddr() net.Addr {
 	if w.conn != nil {
 		return w.conn.LocalAddr()
 	}
-	return &dummyAddr{addr: "local"}
+	return newTCPAddrWrapper("local")
 }
 
 func (w *SOCKS5ConnWrapper) RemoteAddr() net.Addr {
 	if w.conn != nil {
 		return w.conn.RemoteAddr()
 	}
-	return &dummyAddr{addr: "remote"}
+	return newTCPAddrWrapper("remote")
 }
 
 func (w *SOCKS5ConnWrapper) SetDeadline(t time.Time) error {
@@ -386,17 +386,17 @@ func (w *WebSocketConnWrapper) Close() error {
 }
 
 func (w *WebSocketConnWrapper) LocalAddr() net.Addr {
-	if w.conn != nil {
-		return w.conn.LocalAddr()
+	if w.client.NetConn() != nil {
+		return w.client.NetConn().LocalAddr()
 	}
-	return &dummyAddr{addr: "local"}
+	return newTCPAddrWrapper("local")
 }
 
 func (w *WebSocketConnWrapper) RemoteAddr() net.Addr {
-	if w.conn != nil {
-		return w.conn.RemoteAddr()
+	if w.client.NetConn() != nil {
+		return w.client.NetConn().RemoteAddr()
 	}
-	return &dummyAddr{addr: "remote"}
+	return newTCPAddrWrapper("remote")
 }
 
 func (w *WebSocketConnWrapper) SetDeadline(t time.Time) error {
@@ -431,6 +431,52 @@ func (d *dummyAddr) Network() string {
 
 func (d *dummyAddr) String() string {
 	return d.addr
+}
+
+// tcpAddrWrapper TCP地址包装器，用于解决socks5库的类型转换问题
+type tcpAddrWrapper struct {
+	*net.TCPAddr
+}
+
+// newTCPAddrWrapper 创建一个新的TCP地址包装器
+func newTCPAddrWrapper(addr string) *tcpAddrWrapper {
+	// 解析地址
+	if addr == "local" {
+		// 返回本地地址
+		return &tcpAddrWrapper{
+			TCPAddr: &net.TCPAddr{
+				IP:   net.ParseIP("127.0.0.1"),
+				Port: 0,
+				Zone: "",
+			},
+		}
+	}
+
+	if addr == "remote" {
+		// 返回远程地址
+		return &tcpAddrWrapper{
+			TCPAddr: &net.TCPAddr{
+				IP:   net.ParseIP("0.0.0.0"),
+				Port: 0,
+				Zone: "",
+			},
+		}
+	}
+
+	// 尝试解析为TCP地址
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		// 如果解析失败，返回默认地址
+		return &tcpAddrWrapper{
+			TCPAddr: &net.TCPAddr{
+				IP:   net.ParseIP("127.0.0.1"),
+				Port: 0,
+				Zone: "",
+			},
+		}
+	}
+
+	return &tcpAddrWrapper{TCPAddr: tcpAddr}
 }
 
 // 保持原有的UpstreamSelector以向后兼容

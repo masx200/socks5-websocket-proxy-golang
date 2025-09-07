@@ -21,6 +21,11 @@ type SOCKS5Client struct {
 	connectionClosedCallback func()
 }
 
+// NetConn implements interfaces.ProxyClient.
+func (c *SOCKS5Client) NetConn() net.Conn {
+	return c.conn
+}
+
 // NewSOCKS5Client 创建新的SOCKS5客户端
 func NewSOCKS5Client(config interfaces.ClientConfig) *SOCKS5Client {
 	return &SOCKS5Client{

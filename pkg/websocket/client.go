@@ -26,8 +26,13 @@ type WebSocketClient struct {
 	conn                     *websocket.Conn
 	httpClient               *http.Client
 	connectionClosedCallback func()
+	netConn                  net.Conn
 }
 
+//	func (c *WebSocketClient) NetConn() net.Conn {
+//		return c.netConn
+//	}
+//
 // NewWebSocketClient 创建新的WebSocket客户端
 func NewWebSocketClient(config interfaces.ClientConfig) *WebSocketClient {
 	return &WebSocketClient{
@@ -63,6 +68,7 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 
 	c.conn = conn
 	c.authenticated = true
+	c.netConn = conn.NetConn()
 	return nil
 }
 
@@ -203,13 +209,14 @@ func (c *WebSocketClient) NetConn() net.Conn {
 	if c.conn == nil {
 		return nil
 	}
-	return &websocketConn{conn: c.conn}
+	return &websocketConn{conn: c.conn, netConn: c.netConn}
 }
 
 // websocketConn 将websocket.Conn包装为net.Conn
 type websocketConn struct {
 	conn       *websocket.Conn
 	readBuffer []byte
+	netConn    net.Conn
 }
 
 func (w *websocketConn) Read(b []byte) (n int, err error) {
@@ -247,11 +254,11 @@ func (w *websocketConn) Close() error {
 }
 
 func (w *websocketConn) LocalAddr() net.Addr {
-	return w.conn.LocalAddr()
+	return w.netConn.LocalAddr()
 }
 
 func (w *websocketConn) RemoteAddr() net.Addr {
-	return w.conn.RemoteAddr()
+	return w.netConn.RemoteAddr()
 }
 
 func (w *websocketConn) SetDeadline(t time.Time) error {
