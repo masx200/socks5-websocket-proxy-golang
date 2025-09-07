@@ -3,6 +3,7 @@ package websocket
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -48,14 +49,15 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	}
 
 	// 构建WebSocket URL
-	wsURL, err := c.buildWebSocketURL(/* targetHost, targetPort */)
+	wsURL, err := c.buildWebSocketURL( /* targetHost, targetPort */ )
 	if err != nil {
 		return fmt.Errorf("failed to build WebSocket URL: %w", err)
 	}
 
 	// 创建请求头
 	headers := c.buildHeaders(targetHost, targetPort)
-
+	log.Println("url:", wsURL)
+	log.Println("headers:", headers)
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.Timeout,
@@ -161,7 +163,7 @@ func (c *WebSocketClient) SetConnectionClosedCallback(callback func()) error {
 }
 
 // buildWebSocketURL 构建WebSocket URL
-func (c *WebSocketClient) buildWebSocketURL(/* targetHost string, targetPort int */) (string, error) {
+func (c *WebSocketClient) buildWebSocketURL( /* targetHost string, targetPort int */ ) (string, error) {
 	// 解析服务器地址
 	serverURL, err := url.Parse(c.config.ServerAddr)
 	if err != nil {
