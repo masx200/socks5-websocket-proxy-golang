@@ -40,6 +40,7 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 		config:   config,
 		shutdown: make(chan struct{}),
 		upgrader: &websocket.Upgrader{
+			EnableCompression: true,
 			HandshakeTimeout: config.Timeout,
 			ReadBufferSize:   1024,
 			WriteBufferSize:  1024,

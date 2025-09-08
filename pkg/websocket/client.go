@@ -62,6 +62,7 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.Timeout,
+		EnableCompression: true,
 	}
 
 	conn, response, err := dialer.Dial(wsURL, headers)
