@@ -2,11 +2,13 @@ package socks5
 
 import (
 	// "bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
@@ -19,6 +21,41 @@ type SOCKS5Client struct {
 	conn                     net.Conn
 	authenticated            bool
 	connectionClosedCallback func()
+}
+
+// DialContext implements interfaces.ProxyClient.
+func (c *SOCKS5Client) DialContext(ctx context.Context, network string, addr string) (net.Conn, error) {
+	// 解析目标地址
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse address %s: %w", addr, err)
+	}
+	
+	// 将端口转换为整数
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse port %s: %w", port, err)
+	}
+	
+	// 创建管道连接
+	clientConn, serverConn := net.Pipe()
+	
+	// 使用Connect方法建立连接
+	go func() {
+		if err := c.Connect(host, portInt); err != nil {
+			serverConn.Close()
+			return
+		}
+		
+		// 使用ForwardData进行数据转发
+		if err := c.ForwardData(serverConn); err != nil {
+			serverConn.Close()
+			return
+		}
+	}()
+	
+	// 返回客户端连接
+	return clientConn, nil
 }
 
 // NetConn implements interfaces.ProxyClient.

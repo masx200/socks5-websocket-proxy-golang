@@ -1,12 +1,14 @@
 package websocket
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +31,41 @@ type WebSocketClient struct {
 	httpClient               *http.Client
 	connectionClosedCallback func()
 	netConn                  net.Conn
+}
+
+// DialContext implements interfaces.ProxyClient.
+func (c *WebSocketClient) DialContext(ctx context.Context, network string, addr string) (net.Conn, error) {
+	// 解析目标地址
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse address %s: %w", addr, err)
+	}
+	
+	// 将端口转换为整数
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse port %s: %w", port, err)
+	}
+	
+	// 创建管道连接
+	clientConn, serverConn := net.Pipe()
+	
+	// 使用Connect方法建立连接
+	go func() {
+		if err := c.Connect(host, portInt); err != nil {
+			serverConn.Close()
+			return
+		}
+		
+		// 使用ForwardData进行数据转发
+		if err := c.ForwardData(serverConn); err != nil {
+			serverConn.Close()
+			return
+		}
+	}()
+	
+	// 返回客户端连接
+	return clientConn, nil
 }
 
 //	func (c *WebSocketClient) NetConn() net.Conn {

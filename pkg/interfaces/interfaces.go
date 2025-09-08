@@ -1,10 +1,12 @@
 package interfaces
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
+
 	// "os"
 	"time"
 )
@@ -54,6 +56,8 @@ type ProxyClient interface {
 	Close() error
 	SetConnectionClosedCallback(callback func()) error
 	NetConn() net.Conn
+
+	DialContext(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
 // ProxyServer 代理服务端接口
