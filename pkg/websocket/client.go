@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -56,12 +57,12 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 
 	// 创建请求头
 	headers := c.buildHeaders(targetHost, targetPort)
-	
+
 	log.Println("url:", wsURL)
 	log.Println("headers:", headers)
 	// 建立WebSocket连接
 	dialer := websocket.Dialer{
-		HandshakeTimeout: c.config.Timeout,
+		HandshakeTimeout:  c.config.Timeout,
 		EnableCompression: true,
 	}
 
@@ -168,6 +169,11 @@ func (c *WebSocketClient) SetConnectionClosedCallback(callback func()) error {
 
 // buildWebSocketURL 构建WebSocket URL
 func (c *WebSocketClient) buildWebSocketURL( /* targetHost string, targetPort int */ ) (string, error) {
+
+	if !strings.HasPrefix(c.config.ServerAddr, "ws://") && !strings.HasPrefix(c.config.ServerAddr, "wss://") {
+		return "", fmt.Errorf("invalid server address: %s", c.config.ServerAddr)
+	}
+
 	// 解析服务器地址
 	serverURL, err := url.Parse(c.config.ServerAddr)
 	if err != nil {
