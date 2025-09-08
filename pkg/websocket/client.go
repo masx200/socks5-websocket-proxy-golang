@@ -56,6 +56,7 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 
 	// 创建请求头
 	headers := c.buildHeaders(targetHost, targetPort)
+	
 	log.Println("url:", wsURL)
 	log.Println("headers:", headers)
 	// 建立WebSocket连接
@@ -63,10 +64,12 @@ func (c *WebSocketClient) Connect(targetHost string, targetPort int) error {
 		HandshakeTimeout: c.config.Timeout,
 	}
 
-	conn, _, err := dialer.Dial(wsURL, headers)
+	conn, response, err := dialer.Dial(wsURL, headers)
 	if err != nil {
 		return fmt.Errorf("failed to connect to WebSocket server: %w", err)
 	}
+	log.Println("url:", response.Request.URL.String())
+	log.Println("headers:", response.Header)
 
 	c.conn = conn
 	c.authenticated = true

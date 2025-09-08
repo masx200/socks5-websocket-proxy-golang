@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"reflect"
@@ -84,6 +85,10 @@ func (s *WebSocketServer) Listen() error {
 
 // handleWebSocketConnection 处理WebSocket连接
 func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("url", r.URL.String())
+
+	log.Println("headers", r.Header)
 	clientAddr := r.RemoteAddr
 	startTime := time.Now()
 	fmt.Printf("[WEBSOCKET-CONN] New connection attempt from %s at %s\n", clientAddr, startTime.Format("2006-01-02 15:04:05"))
@@ -297,8 +302,8 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 	}
 
 	// 记录解析的认证信息
-	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', targetHost: '%s', targetPort: %d\n",
-		username, targetHost, targetPort)
+	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', password: '%s', targetHost: '%s', targetPort: %d\n",
+		username, password, targetHost, targetPort)
 
 	// 允许没有认证信息的情况，返回空字符串而不是错误
 	// 实际的认证验证会在Authenticate方法中进行
