@@ -136,3 +136,4 @@
   Upstream selector enabled: false 情况下仍进入选择器分支的问题
 - 2025-09-06：实现客户端连接关闭callback功能，为ProxyClient接口添加SetConnectionClosedCallback方法，支持连接关闭时自动退出程序，替换原来的轮询检查机制，提高效率和可靠性
 - 2025-09-07：实现DynamicUpstreamSelector负载均衡策略测试，完成selectRoundRobin、selectRandom、selectWeighted、selectFailover四种策略的全面测试用例，包括单元测试、并发测试和基准测试，确保代码质量和性能
+- 2025-09-08：:feat(proxy): 为ProxyClient接口添加DialContext方法，实现WebSocketClient和SOCKS5Client的DialContext方法，支持通过context控制连接建立过程。使用net.Pipe创建连接并通过goroutine处理连接和转发数据，提高连接建立的灵活性和可控性。
