@@ -198,13 +198,13 @@ func (c *SOCKS5Client) createSOCKS5Dialer() (proxy.Dialer, error) {
 
 // parseServerAddr 解析服务器地址，支持协议前缀
 func (c *SOCKS5Client) parseServerAddr(addr string) (string, bool, error) {
-	if strings.HasPrefix(addr, "tls://") {
+	if after, ok :=strings.CutPrefix(addr, "tls://"); ok  {
 		// 移除tls://前缀，并去除末尾的斜杠
-		parsedAddr := strings.TrimSuffix(strings.TrimPrefix(addr, "tls://"), "/")
+		parsedAddr := strings.TrimSuffix(after, "/")
 		return parsedAddr, true, nil
-	} else if strings.HasPrefix(addr, "tcp://") {
+	} else if after0, ok0 :=strings.CutPrefix(addr, "tcp://"); ok0  {
 		// 移除tcp://前缀，并去除末尾的斜杠
-		parsedAddr := strings.TrimSuffix(strings.TrimPrefix(addr, "tcp://"), "/")
+		parsedAddr := strings.TrimSuffix(after0, "/")
 		return parsedAddr, false, nil
 	}
 	// 默认使用TCP，去除末尾的斜杠
