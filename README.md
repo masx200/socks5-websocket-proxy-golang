@@ -115,21 +115,21 @@ go build -o proxy-server.exe cmd/main.go
 
 程序支持以下命令行参数，可以通过 `-h` 或 `--help` 查看帮助信息：
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `-addr` | string | `":1080"` | 监听地址(服务端)或服务器地址(客户端) |
-| `-config` | string | `""` | 配置文件路径 |
-| `-host` | string | `""` | 目标主机(客户端模式) |
-| `-mode` | string | `"server"` | 运行模式: server 或 client |
-| `-password` | string | `""` | 密码 |
-| `-port` | int | `0` | 目标端口(客户端模式) |
-| `-protocol` | string | `"socks5"` | 协议类型: socks5 或 websocket |
-| `-timeout` | int | `30` | 超时时间(秒) |
-| `-upstream-address` | string | `""` | 上游代理地址 |
-| `-upstream-password` | string | `""` | 上游代理密码 |
-| `-upstream-type` | string | `""` | 上游连接类型: direct, socks5, websocket, http |
-| `-upstream-username` | string | `""` | 上游代理用户名 |
-| `-username` | string | `""` | 用户名 |
+| 参数                 | 类型   | 默认值     | 说明                                                                              |
+| -------------------- | ------ | ---------- | --------------------------------------------------------------------------------- |
+| `-addr`              | string | `":1080"`  | 监听地址(服务端)或服务器地址(客户端)                                              |
+| `-config`            | string | `""`       | 配置文件路径                                                                      |
+| `-host`              | string | `""`       | 目标主机(客户端模式)                                                              |
+| `-mode`              | string | `"server"` | 运行模式: server 或 client                                                        |
+| `-password`          | string | `""`       | 密码                                                                              |
+| `-port`              | int    | `0`        | 目标端口(客户端模式)                                                              |
+| `-protocol`          | string | `"socks5"` | 协议类型: socks5 或 websocket                                                     |
+| `-timeout`           | int    | `30`       | 超时时间(秒)                                                                      |
+| `-upstream-address`  | string | `""`       | 上游代理地址，支持协议前缀: ws://, socks5://, http://, tcp://, tls://, socks5s:// |
+| `-upstream-password` | string | `""`       | 上游代理密码                                                                      |
+| `-upstream-type`     | string | `""`       | 上游连接类型: direct, socks5, websocket, http                                     |
+| `-upstream-username` | string | `""`       | 上游代理用户名                                                                    |
+| `-username`          | string | `""`       | 用户名                                                                            |
 
 ### 参数使用示例
 
@@ -187,6 +187,8 @@ go build -o proxy-server.exe cmd/main.go
 - `proxy_address`: 代理服务器地址，支持以下协议前缀：
   - `tcp://` 或 `socks5://` - 普通 TCP 连接
   - `tls://` 或 `socks5s://` - TLS 加密连接
+  - `ws://` - WebSocket 连接
+  - `http://` - HTTP 代理连接
   - 无前缀 - 默认使用 TCP 连接
 - `proxy_username`: 代理用户名
 - `proxy_password`: 代理密码
