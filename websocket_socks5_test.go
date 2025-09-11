@@ -1,0 +1,603 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	// "sync"
+	"syscall"
+	"testing"
+	"time"
+)
+
+import (
+
+	"strconv"
+	"sync"
+)
+
+// ProcessManager 进程管理器
+type ProcessManager struct {
+	processes []*exec.Cmd
+	mutex     sync.Mutex
+}
+
+// NewProcessManager 创建新的进程管理器
+func NewProcessManager() *ProcessManager {
+	return &ProcessManager{
+		processes: make([]*exec.Cmd, 0),
+	}
+}
+
+// AddProcess 添加进程到管理器
+func (pm *ProcessManager) AddProcess(cmd *exec.Cmd) {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+	pm.processes = append(pm.processes, cmd)
+}
+
+// CleanupAll 清理所有进程
+func (pm *ProcessManager) CleanupAll() {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+
+	for _, cmd := range pm.processes {
+		if cmd.Process != nil {
+			// Windows系统下使用更强制的方式终止进程
+			if runtime.GOOS == "windows" {
+				// 在Windows上，我们需要终止整个进程树
+				cmd.Process.Kill()
+				// 等待进程退出
+				cmd.Wait()
+
+				// 尝试查找并终止子进程
+				pm.killChildProcesses(cmd.Process.Pid)
+			} else {
+				// Unix系统下使用进程组
+				cmd.Process.Kill()
+				cmd.Wait()
+			}
+		}
+	}
+	pm.processes = make([]*exec.Cmd, 0)
+}
+
+// killChildProcesses 在Windows上终止子进程
+func (pm *ProcessManager) killChildProcesses(parentPid int) {
+	// 在Windows上使用taskkill命令终止进程树
+	killCmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(parentPid))
+	killCmd.Run() // 忽略错误，因为进程可能已经退出
+}
+
+// GetPIDs 获取所有进程的PID
+func (pm *ProcessManager) GetPIDs() []string {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+
+	var pids []string
+	for _, cmd := range pm.processes {
+		if cmd.Process != nil {
+			pids = append(pids, strconv.Itoa(cmd.Process.Pid))
+		}
+	}
+	return pids
+}
+
+// TestWebSocketSocks5Proxy 测试WebSocket和SOCKS5级联代理服务器
+func TestWebSocketSocks5Proxy(t *testing.T) {
+	// 创建进程管理器
+	processManager := NewProcessManager()
+	defer processManager.CleanupAll()
+
+	// 创建缓冲区来捕获服务器输出
+	var websocketOutput bytes.Buffer
+	var socks5Output bytes.Buffer
+	// var outputMutex sync.Mutex
+
+	// 创建多写入器
+	websocketWriter := io.MultiWriter(os.Stdout, &websocketOutput)
+	socks5Writer := io.MultiWriter(os.Stdout, &socks5Output)
+
+	// 清理可能存在的旧的可执行文件
+	if _, err := os.Stat("main.exe"); err == nil {
+		os.Remove("main.exe")
+	}
+
+	// 添加测试超时检查
+	timeoutTimer := time.AfterFunc(30*time.Second, func() {
+		log.Println("\n⚠️ 测试即将超时，正在清理进程...")
+		processManager.CleanupAll()
+		t.Fatal("测试超时")
+	})
+	defer timeoutTimer.Stop()
+
+	// 测试结果记录
+	var testResults []string
+	testResults = append(testResults, "# WebSocket和SOCKS5级联代理测试记录")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "## 测试时间")
+	testResults = append(testResults, time.Now().Format("2006-01-02 15:04:05"))
+	testResults = append(testResults, "")
+
+	// 检查端口是否被占用
+	if IsPortOccupied2(8080) {
+		t.Fatal("端口8080已被占用，请先停止占用该端口的进程")
+	}
+	if IsPortOccupied2(1080) {
+		t.Fatal("端口1080已被占用，请先停止占用该端口的进程")
+	}
+
+	// 编译代理服务器
+	testResults = append(testResults, "## 1. 编译代理服务器")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "执行命令: `go build -o main.exe ./cmd/main.go`")
+	testResults = append(testResults, "")
+
+	buildCmd := exec.Command("go", "build", "-o", "main.exe", "./cmd/main.go")
+	buildCmd.Stdout = websocketWriter
+	buildCmd.Stderr = websocketWriter
+
+	if err := buildCmd.Run(); err != nil {
+		t.Fatalf("编译代理服务器失败: %v", err)
+	}
+	testResults = append(testResults, "✅ 代理服务器编译成功")
+	testResults = append(testResults, "")
+
+	// 启动WebSocket服务器（作为上游）
+	testResults = append(testResults, "## 2. 启动WebSocket服务器（上游）")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "执行命令: `./main.exe -mode server -protocol websocket -addr :8080`")
+	testResults = append(testResults, "")
+
+	websocketCmd := exec.Command("./main.exe", "-mode", "server", "-protocol", "websocket", "-addr", ":8080")
+	websocketCmd.Stdout = websocketWriter
+	websocketCmd.Stderr = websocketWriter
+
+	// 设置进程属性
+	if runtime.GOOS == "windows" {
+		websocketCmd.SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		}
+	}
+
+	err := websocketCmd.Start()
+	if err != nil {
+		t.Fatalf("启动WebSocket服务器失败: %v", err)
+	}
+
+	processManager.AddProcess(websocketCmd)
+	log.Printf("WebSocket服务器已启动，PID: %d\n", websocketCmd.Process.Pid)
+	testResults = append(testResults, fmt.Sprintf("📋 WebSocket服务器进程PID: %d", websocketCmd.Process.Pid))
+	testResults = append(testResults, "")
+
+	// 等待WebSocket服务器启动
+	testResults = append(testResults, "等待WebSocket服务器启动...")
+	websocketStarted := false
+	for i := 0; i < 10; i++ {
+		if IsPortOccupied2(8080) {
+			websocketStarted = true
+			break
+		}
+		time.Sleep(1 * time.Second)
+		log.Printf("等待WebSocket服务器启动... %d/10\n", i+1)
+	}
+
+	if !websocketStarted {
+		t.Fatal("WebSocket服务器启动失败")
+	}
+
+	testResults = append(testResults, "✅ WebSocket服务器启动成功")
+	testResults = append(testResults, "")
+
+	// 启动SOCKS5服务器（设置upstream为WebSocket服务器）
+	testResults = append(testResults, "## 3. 启动SOCKS5服务器（下游）")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "执行命令: `./main.exe -mode server -protocol socks5 -addr :1080 -upstream-type websocket -upstream-address ws://localhost:8080`")
+	testResults = append(testResults, "")
+
+	socks5Cmd := exec.Command("./main.exe", "-mode", "server", "-protocol", "socks5", "-addr", ":1080",
+		"-upstream-type", "websocket", "-upstream-address", "ws://localhost:8080")
+	socks5Cmd.Stdout = socks5Writer
+	socks5Cmd.Stderr = socks5Writer
+
+	// 设置进程属性
+	if runtime.GOOS == "windows" {
+		socks5Cmd.SysProcAttr = &syscall.SysProcAttr{
+			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+		}
+	}
+
+	err = socks5Cmd.Start()
+	if err != nil {
+		t.Fatalf("启动SOCKS5服务器失败: %v", err)
+	}
+
+	processManager.AddProcess(socks5Cmd)
+	log.Printf("SOCKS5服务器已启动，PID: %d\n", socks5Cmd.Process.Pid)
+	testResults = append(testResults, fmt.Sprintf("📋 SOCKS5服务器进程PID: %d", socks5Cmd.Process.Pid))
+	testResults = append(testResults, "")
+
+	// 等待SOCKS5服务器启动
+	testResults = append(testResults, "等待SOCKS5服务器启动...")
+	socks5Started := false
+	for i := 0; i < 10; i++ {
+		if isSocks5ProxyRunning() {
+			socks5Started = true
+			break
+		}
+		time.Sleep(1 * time.Second)
+		log.Printf("等待SOCKS5服务器启动... %d/10\n", i+1)
+	}
+
+	if !socks5Started {
+		t.Fatal("SOCKS5服务器启动失败")
+	}
+
+	testResults = append(testResults, "✅ SOCKS5服务器启动成功")
+	testResults = append(testResults, "")
+
+	// 等待额外的时间确保服务器完全启动
+	time.Sleep(2 * time.Second)
+
+	// 测试级联代理功能
+	testResults = append(testResults, "## 4. 测试级联代理功能")
+	testResults = append(testResults, "")
+
+	// 测试HTTP代理
+	testResults = append(testResults, "### 测试1: HTTP代理通过级联")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "执行命令: `curl -v -I http://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "")
+
+	curlCmd1 := exec.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:1080")
+	var curlOutput1 bytes.Buffer
+	curlCmd1.Stdout = &curlOutput1
+	curlCmd1.Stderr = &curlOutput1
+
+	err1 := curlCmd1.Run()
+	output1 := curlOutput1.Bytes()
+
+	processManager.AddProcess(curlCmd1)
+	testResults = append(testResults, fmt.Sprintf("📋 Curl测试1进程PID: %d", curlCmd1.Process.Pid))
+	testResults = append(testResults, "")
+
+	if err1 != nil {
+		testResults = append(testResults, fmt.Sprintf("❌ 测试失败: %v", err1))
+		testResults = append(testResults, fmt.Sprintf("错误输出: %s", string(output1)))
+	} else {
+		testResults = append(testResults, "✅ 测试成功")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "输出结果:")
+		testResults = append(testResults, "```")
+		testResults = append(testResults, string(output1))
+		testResults = append(testResults, "```")
+	}
+	testResults = append(testResults, "")
+
+	// 测试HTTPS代理
+	testResults = append(testResults, "### 测试2: HTTPS代理通过级联")
+	testResults = append(testResults, "")
+	testResults = append(testResults, "执行命令: `curl -v -I https://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "")
+
+	curlCmd2 := exec.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:1080")
+	var curlOutput2 bytes.Buffer
+	curlCmd2.Stdout = &curlOutput2
+	curlCmd2.Stderr = &curlOutput2
+
+	err2 := curlCmd2.Run()
+	output2 := curlOutput2.Bytes()
+
+	processManager.AddProcess(curlCmd2)
+	testResults = append(testResults, fmt.Sprintf("📋 Curl测试2进程PID: %d", curlCmd2.Process.Pid))
+	testResults = append(testResults, "")
+
+	if err2 != nil {
+		testResults = append(testResults, fmt.Sprintf("❌ 测试失败: %v", err2))
+		testResults = append(testResults, fmt.Sprintf("错误输出: %s", string(output2)))
+	} else {
+		testResults = append(testResults, "✅ 测试成功")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "输出结果:")
+		testResults = append(testResults, "```")
+		testResults = append(testResults, string(output2))
+		testResults = append(testResults, "```")
+	}
+	testResults = append(testResults, "")
+
+	// 记录所有进程PID信息
+	testResults = append(testResults, "### 📋 所有进程PID记录")
+	testResults = append(testResults, "")
+	allPIDs := processManager.GetPIDs()
+	testResults = append(testResults, fmt.Sprintf("所有进程PID: %s", strings.Join(allPIDs, ", ")))
+	testResults = append(testResults, "")
+
+	// 写入测试记录到文件
+	err = WriteTestResults2(testResults)
+	if err != nil {
+		t.Errorf("写入测试记录失败: %v", err)
+	}
+
+	// 验证测试结果
+	if err1 != nil {
+		t.Errorf("HTTP curl测试失败: %v", err1)
+	}
+	if err2 != nil {
+		t.Errorf("HTTPS curl测试失败: %v", err2)
+	}
+
+	// 如果测试成功，关闭服务器进程
+	if err1 == nil && err2 == nil {
+		testResults = append(testResults, "## 5. 关闭服务器")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "✅ 所有测试成功，正在关闭服务器进程...")
+		testResults = append(testResults, "")
+
+		// 停止超时计时器
+		timeoutTimer.Stop()
+
+		// 终止WebSocket服务器
+		testResults = append(testResults, "🛑 正在终止WebSocket服务器进程...")
+		if websocketCmd.Process != nil {
+			if err := websocketCmd.Process.Kill(); err != nil {
+				testResults = append(testResults, fmt.Sprintf("❌ 终止WebSocket服务器进程失败: %v", err))
+			} else {
+				websocketCmd.Wait()
+				testResults = append(testResults, "✅ WebSocket服务器进程已终止")
+			}
+		}
+		testResults = append(testResults, "")
+
+		// 终止SOCKS5服务器
+		testResults = append(testResults, "🛑 正在终止SOCKS5服务器进程...")
+		if socks5Cmd.Process != nil {
+			if err := socks5Cmd.Process.Kill(); err != nil {
+				testResults = append(testResults, fmt.Sprintf("❌ 终止SOCKS5服务器进程失败: %v", err))
+			} else {
+				socks5Cmd.Wait()
+				testResults = append(testResults, "✅ SOCKS5服务器进程已终止")
+			}
+		}
+		testResults = append(testResults, "")
+
+		// 清理所有进程
+		testResults = append(testResults, "🧹 正在清理所有子进程...")
+		processManager.CleanupAll()
+		testResults = append(testResults, "✅ 所有子进程已清理完成")
+		testResults = append(testResults, "")
+
+		// 等待进程完全关闭
+		time.Sleep(2 * time.Second)
+
+		// 清理编译的可执行文件
+		if _, err := os.Stat("main.exe"); err == nil {
+			os.Remove("main.exe")
+			testResults = append(testResults, "🧹 已清理编译的可执行文件")
+		}
+
+		// 添加服务器日志输出
+		testResults = append(testResults, "### WebSocket服务器日志输出")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "```")
+		websocketLines := strings.Split(websocketOutput.String(), "\n")
+		for _, line := range websocketLines {
+			if strings.TrimSpace(line) != "" {
+				testResults = append(testResults, line)
+			}
+		}
+		testResults = append(testResults, "```")
+		testResults = append(testResults, "")
+
+		testResults = append(testResults, "### SOCKS5服务器日志输出")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "```")
+		socks5Lines := strings.Split(socks5Output.String(), "\n")
+		for _, line := range socks5Lines {
+			if strings.TrimSpace(line) != "" {
+				testResults = append(testResults, line)
+			}
+		}
+		testResults = append(testResults, "```")
+		testResults = append(testResults, "")
+
+		// 验证端口是否已释放
+		if !IsPortOccupied2(8080) {
+			testResults = append(testResults, "✅ 端口8080已成功释放")
+		} else {
+			testResults = append(testResults, "❌ 端口8080仍被占用")
+		}
+		if !IsPortOccupied2(1080) {
+			testResults = append(testResults, "✅ 端口1080已成功释放")
+		} else {
+			testResults = append(testResults, "❌ 端口1080仍被占用")
+		}
+
+		// 重新写入测试记录
+		err = WriteTestResults2(testResults)
+		if err != nil {
+			t.Errorf("更新测试记录失败: %v", err)
+		}
+	} else {
+		// 如果有测试失败，也记录关闭进程的信息
+		testResults = append(testResults, "## 5. 关闭服务器")
+		testResults = append(testResults, "")
+		testResults = append(testResults, "⚠️ 部分测试失败，但仍需关闭服务器进程...")
+		testResults = append(testResults, "")
+
+		// 终止WebSocket服务器
+		if websocketCmd.Process != nil {
+			websocketCmd.Process.Kill()
+			websocketCmd.Wait()
+		}
+
+		// 终止SOCKS5服务器
+		if socks5Cmd.Process != nil {
+			socks5Cmd.Process.Kill()
+			socks5Cmd.Wait()
+		}
+
+		// 清理所有进程
+		processManager.CleanupAll()
+
+		// 等待进程完全关闭
+		time.Sleep(2 * time.Second)
+
+		// 清理编译的可执行文件
+		if _, err := os.Stat("main.exe"); err == nil {
+			os.Remove("main.exe")
+		}
+
+		// 重新写入测试记录
+		err = WriteTestResults2(testResults)
+		if err != nil {
+			t.Errorf("更新测试记录失败: %v", err)
+		}
+	}
+}
+
+// isSocks5ProxyRunning 检查SOCKS5代理服务器是否正在运行
+func isSocks5ProxyRunning() bool {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// 创建一个测试请求
+	req, err := http.NewRequest("GET", "http://www.baidu.com", nil)
+	if err != nil {
+		return false
+	}
+
+	// 设置代理
+	proxyURL, err := url.Parse("socks5://localhost:1080")
+	if err != nil {
+		return false
+	}
+
+	transport := &http.Transport{
+		Proxy: http.ProxyURL(proxyURL),
+	}
+	client.Transport = transport
+
+	// 发送测试请求
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == 200
+}
+
+// IsPortOccupied2 检查端口是否被占用
+func IsPortOccupied2(port int) bool {
+	addr := fmt.Sprintf(":%d", port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return true
+	}
+	listener.Close()
+	return false
+}
+
+// WriteTestResults2 写入测试结果到文件
+func WriteTestResults2(results []string) error {
+	// 写入到websocket_socks5_test_record.md
+	file, err := os.OpenFile("websocket_socks5_test_record.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// 移动到文件末尾
+	_, err = file.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(file)
+
+	// 写入分隔符
+	_, err = writer.WriteString("\n\n###\n\n")
+	if err != nil {
+		return err
+	}
+
+	// 写入测试结果
+	for _, line := range results {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	return writer.Flush()
+}
+
+// TestMain2 主测试函数
+func TestMain(m *testing.M) {
+	// 创建带有35秒超时的上下文
+	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+	defer cancel()
+
+	// 创建通道来接收测试结果
+	resultChan := make(chan int, 1)
+
+	// 在goroutine中运行测试
+	go func() {
+		// 运行测试
+		code := m.Run()
+		resultChan <- code
+	}()
+
+	// 等待测试完成或超时
+	select {
+	case code := <-resultChan:
+		// 测试正常完成
+		os.Exit(code)
+	case <-ctx.Done():
+		// 超时或取消
+		log.Println("\n⏰ 测试超时（35秒），强制退出...")
+
+		// 在Windows上强制终止所有go进程
+		if runtime.GOOS == "windows" {
+			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			killCmd.Run()
+		}
+
+		// 记录超时信息
+		timeoutMessage := []string{
+			"# WebSocket和SOCKS5级联测试超时记录",
+			"",
+			"## 超时时间",
+			time.Now().Format("2006-01-02 15:04:05"),
+			"",
+			"❌ 测试执行超过35秒超时限制，强制退出",
+			"",
+			"可能的原因:",
+			"- 服务器进程未正常退出",
+			"- curl命令卡住",
+			"- 网络连接问题",
+			"- 级联代理配置问题",
+			"",
+			"已尝试终止所有相关进程",
+			"",
+		}
+
+		// 写入超时记录
+		if err := WriteTestResults2(timeoutMessage); err != nil {
+			log.Printf("写入超时记录失败: %v\n", err)
+		}
+
+		// 强制退出
+		os.Exit(1)
+	}
+}

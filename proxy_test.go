@@ -13,12 +13,17 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
+)
+
+import (
+	
+	"strconv"
+	
 )
 
 // ProcessManager 进程管理器
@@ -170,7 +175,7 @@ func TestProxyServer(t *testing.T) {
 		timeoutTestResults = append(timeoutTestResults, "```")
 
 		// 写入超时测试记录
-		if err := writeTestResults(timeoutTestResults); err != nil {
+		if err := writeTestResults1(timeoutTestResults); err != nil {
 			log.Printf("写入超时测试记录失败: %v\n", err)
 		}
 		processManager.CleanupAll()
@@ -188,7 +193,7 @@ func TestProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 检查端口是否被占用
-	if isPortOccupied(1080) {
+	if isPortOccupied1(1080) {
 		t.Fatal("端口1080已被占用，请先停止占用该端口的进程")
 	}
 
@@ -317,7 +322,7 @@ func TestProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd2 := exec.Command("curl", "-v", "-I","-L", "http://www.so.com", "-x", "socks5://localhost:1080")
+	curlCmd2 := exec.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:1080")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
@@ -390,7 +395,7 @@ func TestProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 写入测试记录到文件
-	err = writeTestResults(testResults)
+	err = writeTestResults1(testResults)
 	if err != nil {
 		t.Errorf("写入测试记录失败: %v", err)
 	}
@@ -534,14 +539,14 @@ func TestProxyServer(t *testing.T) {
 		testResults = append(testResults, "")
 
 		// 验证端口是否已释放
-		if !isPortOccupied(1080) {
+		if !isPortOccupied1(1080) {
 			testResults = append(testResults, "✅ 端口1080已成功释放")
 		} else {
 			testResults = append(testResults, "❌ 端口1080仍被占用")
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults(testResults)
+		err = writeTestResults1(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -624,15 +629,15 @@ func TestProxyServer(t *testing.T) {
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults(testResults)
+		err = writeTestResults1(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
 	}
 }
 
-// isPortOccupied 检查端口是否被占用
-func isPortOccupied(port int) bool {
+// isPortOccupied1 检查端口是否被占用
+func isPortOccupied1(port int) bool {
 	addr := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -675,8 +680,8 @@ func isProxyServerRunning() bool {
 	return resp.StatusCode == 200
 }
 
-// writeTestResults 写入测试结果到文件
-func writeTestResults(results []string) error {
+// writeTestResults1 写入测试结果到文件
+func writeTestResults1(results []string) error {
 	// 写入到测试记录.md
 	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -708,7 +713,7 @@ func writeTestResults(results []string) error {
 	return writer.Flush()
 }
 
-// TestMain 主测试函数
+// TestMain1 主测试函数
 func TestMain(m *testing.M) {
 	// 创建带有30秒超时的上下文（增加超时时间）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -775,7 +780,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// 写入超时记录
-		if err := writeTestResults(timeoutMessage); err != nil {
+		if err := writeTestResults1(timeoutMessage); err != nil {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 
