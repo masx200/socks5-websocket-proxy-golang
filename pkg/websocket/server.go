@@ -68,16 +68,16 @@ func (s *WebSocketServer) Listen() error {
 		WriteTimeout: s.config.Timeout,
 	}
 
-	fmt.Printf("[WEBSOCKET-SERVER] Server started successfully, listening on %s\n", s.config.ListenAddr)
-	fmt.Printf("[WEBSOCKET-SERVER] Authentication enabled: %t (%d users configured)\n",
+	log.Printf("[WEBSOCKET-SERVER] Server started successfully, listening on %s\n", s.config.ListenAddr)
+	log.Printf("[WEBSOCKET-SERVER] Authentication enabled: %t (%d users configured)\n",
 		len(s.authUsers) > 0, len(s.authUsers))
-	fmt.Printf("[WEBSOCKET-SERVER] Upstream selector enabled: %t\n", s.config.EnableUpstream)
-	fmt.Printf("[WEBSOCKET-SERVER] Read timeout: %v, Write timeout: %v\n", s.config.Timeout, s.config.Timeout)
+	log.Printf("[WEBSOCKET-SERVER] Upstream selector enabled: %t\n", s.config.EnableUpstream)
+	log.Printf("[WEBSOCKET-SERVER] Read timeout: %v, Write timeout: %v\n", s.config.Timeout, s.config.Timeout)
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("[WEBSOCKET-SERVER] HTTP server error: %v\n", err)
+			log.Printf("[WEBSOCKET-SERVER] HTTP server error: %v\n", err)
 		}
 	}()
 
@@ -92,41 +92,41 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 	log.Println("headers", r.Header)
 	clientAddr := r.RemoteAddr
 	startTime := time.Now()
-	fmt.Printf("[WEBSOCKET-CONN] New connection attempt from %s at %s\n", clientAddr, startTime.Format("2006-01-02 15:04:05"))
+	log.Printf("[WEBSOCKET-CONN] New connection attempt from %s at %s\n", clientAddr, startTime.Format("2006-01-02 15:04:05"))
 
 	// 记录认证配置状态
 	if len(s.authUsers) > 0 {
-		fmt.Printf("[WEBSOCKET-CONN] Authentication required for client %s (%d users configured)\n", clientAddr, len(s.authUsers))
+		log.Printf("[WEBSOCKET-CONN] Authentication required for client %s (%d users configured)\n", clientAddr, len(s.authUsers))
 	} else {
-		fmt.Printf("[WEBSOCKET-CONN] No authentication required for client %s\n", clientAddr)
+		log.Printf("[WEBSOCKET-CONN] No authentication required for client %s\n", clientAddr)
 	}
 
 	// 从HTTP Headers中解析认证信息
 	username, password, targetHost, targetPort, err := s.parseAuthInfo(r)
 	if err != nil {
-		fmt.Printf("[WEBSOCKET-CONN] Auth info parse error from %s: %v\n", clientAddr, err)
+		log.Printf("[WEBSOCKET-CONN] Auth info parse error from %s: %v\n", clientAddr, err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// 验证用户名密码
 	if !s.Authenticate(username, password) {
-		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed for user '%s' from %s\n", username, clientAddr)
+		log.Printf("[WEBSOCKET-AUTH] Authentication failed for user '%s' from %s\n", username, clientAddr)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	fmt.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s' from %s\n", username, clientAddr)
+	log.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s' from %s\n", username, clientAddr)
 
 	// 升级HTTP连接为WebSocket连接
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("[WEBSOCKET-CONN] WebSocket upgrade failed for client %s: %v\n", clientAddr, err)
+		log.Printf("[WEBSOCKET-CONN] WebSocket upgrade failed for client %s: %v\n", clientAddr, err)
 		return
 	}
 	defer conn.Close()
 
-	fmt.Printf("[WEBSOCKET-CONN] WebSocket connection established successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
+	log.Printf("[WEBSOCKET-CONN] WebSocket connection established successfully for target %s:%d from %s\n", targetHost, targetPort, clientAddr)
 
 	// 处理WebSocket连接
 	s.wg.Add(1)
@@ -138,10 +138,10 @@ func (s *WebSocketServer) handleWebSocketConnection(w http.ResponseWriter, r *ht
 	// 使用统一的连接处理逻辑
 	if err := s.HandleConnection(wsConn); err != nil {
 		duration := time.Since(startTime)
-		fmt.Printf("[WEBSOCKET-CONN] Connection handling failed for target %s:%d from %s after %v: %v\n", targetHost, targetPort, clientAddr, duration, err)
+		log.Printf("[WEBSOCKET-CONN] Connection handling failed for target %s:%d from %s after %v: %v\n", targetHost, targetPort, clientAddr, duration, err)
 	} else {
 		duration := time.Since(startTime)
-		fmt.Printf("[WEBSOCKET-CONN] Connection completed successfully for target %s:%d from %s, duration: %v\n", targetHost, targetPort, clientAddr, duration)
+		log.Printf("[WEBSOCKET-CONN] Connection completed successfully for target %s:%d from %s, duration: %v\n", targetHost, targetPort, clientAddr, duration)
 	}
 }
 
@@ -170,21 +170,21 @@ func (s *WebSocketServer) HandleConnection(conn net.Conn) error {
 // Authenticate 验证用户名密码
 func (s *WebSocketServer) Authenticate(username, password string) bool {
 	if s.authUsers == nil || len(s.authUsers) == 0 {
-		fmt.Printf("[WEBSOCKET-AUTH] No authentication configured, allowing access for user '%s'\n", username)
+		log.Printf("[WEBSOCKET-AUTH] No authentication configured, allowing access for user '%s'\n", username)
 		return true // 如果没有配置用户，则允许所有连接
 	}
 
 	storedPassword, exists := s.authUsers[username]
 	if !exists {
-		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed: user '%s' not found in configured users\n", username)
+		log.Printf("[WEBSOCKET-AUTH] Authentication failed: user '%s' not found in configured users\n", username)
 		return false
 	}
 
 	if storedPassword == password {
-		fmt.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s'\n", username)
+		log.Printf("[WEBSOCKET-AUTH] Authentication successful for user '%s'\n", username)
 		return true
 	} else {
-		fmt.Printf("[WEBSOCKET-AUTH] Authentication failed: invalid password for user '%s'\n", username)
+		log.Printf("[WEBSOCKET-AUTH] Authentication failed: invalid password for user '%s'\n", username)
 		return false
 	}
 }
@@ -195,7 +195,7 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 
 	// 检查selector是否真正有效（不是nil且包含有效值）
 	if s.selector != nil && !isNilInterface(s.selector) {
-		fmt.Printf("[WEBSOCKET-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
+		log.Printf("[WEBSOCKET-UPSTREAM] Using upstream selector for target %s\n", targetAddr)
 		var conn net.Conn
 		var err error
 
@@ -206,14 +206,14 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 			conn, err = selector.SelectConnection(targetHost, targetPort)
 		} else {
 			err = fmt.Errorf("unknown or nil selector type")
-			fmt.Printf("[WEBSOCKET-UPSTREAM] Selector type check failed for target %s: %v\n", targetAddr, err)
+			log.Printf("[WEBSOCKET-UPSTREAM] Selector type check failed for target %s: %v\n", targetAddr, err)
 			return conn, err
 		}
 
 		if err != nil {
-			fmt.Printf("[WEBSOCKET-UPSTREAM] Upstream selector failed for target %s: %v\n", targetAddr, err)
+			log.Printf("[WEBSOCKET-UPSTREAM] Upstream selector failed for target %s: %v\n", targetAddr, err)
 		} else {
-			fmt.Printf("[WEBSOCKET-UPSTREAM] Upstream selector succeeded for target %s\n", targetAddr)
+			log.Printf("[WEBSOCKET-UPSTREAM] Upstream selector succeeded for target %s\n", targetAddr)
 		}
 		return conn, err
 	}
@@ -224,33 +224,33 @@ func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort
 		timeout = 30 * time.Second
 	}
 
-	fmt.Printf("[WEBSOCKET-UPSTREAM] Using direct connection for target %s (timeout: %v)\n", targetAddr, timeout)
+	log.Printf("[WEBSOCKET-UPSTREAM] Using direct connection for target %s (timeout: %v)\n", targetAddr, timeout)
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 	if err != nil {
-		fmt.Printf("[WEBSOCKET-UPSTREAM] Direct connection failed for target %s: %v\n", targetAddr, err)
+		log.Printf("[WEBSOCKET-UPSTREAM] Direct connection failed for target %s: %v\n", targetAddr, err)
 	} else {
-		fmt.Printf("[WEBSOCKET-UPSTREAM] Direct connection established for target %s\n", targetAddr)
+		log.Printf("[WEBSOCKET-UPSTREAM] Direct connection established for target %s\n", targetAddr)
 	}
 	return conn, err
 }
 
 // Shutdown 优雅关闭服务端
 func (s *WebSocketServer) Shutdown() error {
-	fmt.Printf("[WEBSOCKET-SERVER] Initiating graceful shutdown...\n")
+	log.Printf("[WEBSOCKET-SERVER] Initiating graceful shutdown...\n")
 	close(s.shutdown)
 	if s.httpServer != nil {
-		fmt.Printf("[WEBSOCKET-SERVER] Closing HTTP server...\n")
+		log.Printf("[WEBSOCKET-SERVER] Closing HTTP server...\n")
 		s.httpServer.Close()
 	}
-	fmt.Printf("[WEBSOCKET-SERVER] Waiting for active connections to close...\n")
+	log.Printf("[WEBSOCKET-SERVER] Waiting for active connections to close...\n")
 	s.wg.Wait()
-	fmt.Printf("[WEBSOCKET-SERVER] Server shutdown completed successfully\n")
+	log.Printf("[WEBSOCKET-SERVER] Server shutdown completed successfully\n")
 	return nil
 }
 
 // ReloadConfig 重新加载配置
 func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error {
-	fmt.Printf("[WEBSOCKET-SERVER] Reloading configuration...\n")
+	log.Printf("[WEBSOCKET-SERVER] Reloading configuration...\n")
 
 	// 更新配置
 	s.config = newConfig
@@ -260,17 +260,17 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 	if newConfig.EnableUpstream {
 		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
 		s.selector = selector
-		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
+		log.Printf("[WEBSOCKET-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
 	} else {
 		s.selector = nil
-		fmt.Printf("[WEBSOCKET-SERVER] Upstream selector disabled\n")
+		log.Printf("[WEBSOCKET-SERVER] Upstream selector disabled\n")
 	}
 
-	fmt.Printf("[WEBSOCKET-SERVER] Configuration reloaded successfully\n")
-	fmt.Printf("[WEBSOCKET-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
-	fmt.Printf("[WEBSOCKET-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
-	fmt.Printf("[WEBSOCKET-SERVER] Listen address: %s\n", newConfig.ListenAddr)
-	fmt.Printf("[WEBSOCKET-SERVER] Timeout: %v\n", newConfig.Timeout)
+	log.Printf("[WEBSOCKET-SERVER] Configuration reloaded successfully\n")
+	log.Printf("[WEBSOCKET-SERVER] Authentication users: %d\n", len(newConfig.AuthUsers))
+	log.Printf("[WEBSOCKET-SERVER] Upstream enabled: %t\n", newConfig.EnableUpstream)
+	log.Printf("[WEBSOCKET-SERVER] Listen address: %s\n", newConfig.ListenAddr)
+	log.Printf("[WEBSOCKET-SERVER] Timeout: %v\n", newConfig.Timeout)
 
 	return nil
 }
@@ -303,7 +303,7 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 	}
 
 	// 记录解析的认证信息
-	fmt.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', password: '%s', targetHost: '%s', targetPort: %d\n",
+	log.Printf("[WEBSOCKET-AUTH] Parsed auth info - username: '%s', password: '%s', targetHost: '%s', targetPort: %d\n",
 		username, password, targetHost, targetPort)
 
 	// 允许没有认证信息的情况，返回空字符串而不是错误
@@ -313,23 +313,23 @@ func (s *WebSocketServer) parseAuthInfo(r *http.Request) (username, password, ta
 
 // forwardData 转发数据
 func (s *WebSocketServer) forwardData(clientConn, targetConn net.Conn) error {
-	fmt.Printf("[WEBSOCKET-FORWARD] Starting data forwarding between connections\n")
+	log.Printf("[WEBSOCKET-FORWARD] Starting data forwarding between connections\n")
 	done := make(chan error, 2)
 
 	go func() {
 		bytesWritten, err := io.Copy(targetConn, clientConn)
-		fmt.Printf("[WEBSOCKET-FORWARD] Client -> Target: %d bytes transferred, error: %v\n", bytesWritten, err)
+		log.Printf("[WEBSOCKET-FORWARD] Client -> Target: %d bytes transferred, error: %v\n", bytesWritten, err)
 		done <- err
 	}()
 
 	go func() {
 		bytesWritten, err := io.Copy(clientConn, targetConn)
-		fmt.Printf("[WEBSOCKET-FORWARD] Target -> Client: %d bytes transferred, error: %v\n", bytesWritten, err)
+		log.Printf("[WEBSOCKET-FORWARD] Target -> Client: %d bytes transferred, error: %v\n", bytesWritten, err)
 		done <- err
 	}()
 
 	err := <-done
-	fmt.Printf("[WEBSOCKET-FORWARD] Data forwarding completed with error: %v\n", err)
+	log.Printf("[WEBSOCKET-FORWARD] Data forwarding completed with error: %v\n", err)
 	return err
 }
 

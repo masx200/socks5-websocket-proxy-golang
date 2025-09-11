@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"sync"
@@ -218,7 +219,7 @@ func (s *DynamicUpstreamSelector) createSOCKS5Connection(config *interfaces.Upst
 		}); ok {
 			err := socks5Client.ForwardData(serverConn)
 			if err != nil {
-				fmt.Printf("SOCKS5 forward data error: %v\n", err)
+				log.Printf("SOCKS5 forward data error: %v\n", err)
 			}
 		}
 	}()
@@ -266,7 +267,7 @@ func (s *DynamicUpstreamSelector) createWebSocketConnection(config *interfaces.U
 		}); ok {
 			err := wsClient.ForwardData(serverConn)
 			if err != nil {
-				fmt.Printf("WebSocket forward data error: %v\n", err)
+				log.Printf("WebSocket forward data error: %v\n", err)
 			}
 		}
 	}()
@@ -314,7 +315,7 @@ func (s *DynamicUpstreamSelector) createHTTPConnection(config *interfaces.Upstre
 		}); ok {
 			err := httpClient.ForwardData(serverConn)
 			if err != nil {
-				fmt.Printf("HTTP forward data error: %v\n", err)
+				log.Printf("HTTP forward data error: %v\n", err)
 			}
 		}
 	}()
@@ -681,7 +682,7 @@ func (s *UpstreamSelector) createSOCKS5Connection(targetHost string, targetPort 
 		}); ok {
 			err := socks5Client.ForwardData(serverConn)
 			if err != nil {
-				fmt.Printf("SOCKS5 forward data error: %v\n", err)
+				log.Printf("SOCKS5 forward data error: %v\n", err)
 			}
 		}
 	}()
@@ -728,7 +729,7 @@ func (s *UpstreamSelector) createWebSocketConnection(targetHost string, targetPo
 		}); ok {
 			err := wsClient.ForwardData(serverConn)
 			if err != nil {
-				fmt.Printf("WebSocket forward data error: %v\n", err)
+				log.Printf("WebSocket forward data error: %v\n", err)
 			}
 		}
 	}()
