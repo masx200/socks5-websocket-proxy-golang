@@ -206,6 +206,14 @@ func (c *SOCKS5Client) parseServerAddr(addr string) (string, bool, error) {
 		// 移除tcp://前缀，并去除末尾的斜杠
 		parsedAddr := strings.TrimSuffix(after0, "/")
 		return parsedAddr, false, nil
+	} else if after1, ok1 :=strings.CutPrefix(addr, "socks5s://"); ok1  {
+		// 移除socks5s://前缀，并去除末尾的斜杠，等同于tls://
+		parsedAddr := strings.TrimSuffix(after1, "/")
+		return parsedAddr, true, nil
+	} else if after2, ok2 :=strings.CutPrefix(addr, "socks5://"); ok2  {
+		// 移除socks5://前缀，并去除末尾的斜杠，等同于tcp://
+		parsedAddr := strings.TrimSuffix(after2, "/")
+		return parsedAddr, false, nil
 	}
 	// 默认使用TCP，去除末尾的斜杠
 	parsedAddr := strings.TrimSuffix(addr, "/")
