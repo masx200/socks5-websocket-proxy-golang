@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/url"
 	"strconv"
@@ -51,6 +52,8 @@ func NewHttpProxyClient(config ClientConfig) (ProxyClient, error) {
 
 // Connect 连接到目标主机
 func (c *HttpProxyClient) Connect(host string, port int) error {
+
+	log.Println("Connecting to", host, port, "via HTTP proxy", c.config.ServerAddr)
 	if c.conn != nil {
 		c.conn.Close()
 	}

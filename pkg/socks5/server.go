@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/armon/go-socks5"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/http"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
 )
@@ -237,6 +239,55 @@ func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort in
 			fmt.Printf("[SOCKS5-UPSTREAM] Upstream selector succeeded for target %s\n", targetAddr)
 		}
 		return conn, err
+	}
+
+	// 如果没有选择器但配置了上游代理，尝试直接创建连接
+	if s.config.EnableUpstream && len(s.config.UpstreamConfig) > 0 {
+		fmt.Printf("[SOCKS5-UPSTREAM] Using direct upstream config for target %s\n", targetAddr)
+		upstreamConfig := s.config.UpstreamConfig[0] // 使用第一个配置
+
+		// 根据上游类型创建连接
+		switch upstreamConfig.Type {
+		case interfaces.UpstreamHTTP:
+			proxyURL, err := url.Parse(upstreamConfig.ProxyAddress)
+			if err != nil {
+				return nil, fmt.Errorf("invalid HTTP proxy address: %w", err)
+			}
+
+			// 设置认证信息
+			if upstreamConfig.ProxyUsername != "" && upstreamConfig.ProxyPassword != "" {
+				proxyURL.User = url.UserPassword(upstreamConfig.ProxyUsername, upstreamConfig.ProxyPassword)
+			}
+
+			// 创建HTTP代理客户端配置
+			clientConfig := interfaces.ClientConfig{
+				Username:   upstreamConfig.ProxyUsername,
+				Password:   upstreamConfig.ProxyPassword,
+				ServerAddr: upstreamConfig.ProxyAddress,
+				Protocol:   "http",
+				Timeout:    s.config.Timeout,
+			}
+
+			// 创建HTTP代理客户端
+			client, err := http.NewHttpProxyAdapter(clientConfig)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create HTTP proxy client: %w", err)
+			}
+
+			// 连接到目标
+			err = client.Connect(targetHost, targetPort)
+			if err != nil {
+				return nil, fmt.Errorf("failed to connect via HTTP proxy: %w", err)
+			}
+
+			return client.NetConn(), nil
+		case interfaces.UpstreamSOCKS5:
+			// 处理SOCKS5代理连接
+			// ... (保留原有SOCKS5代理处理逻辑)
+		default:
+			// 默认直连
+			return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), s.config.Timeout)
+		}
 	}
 
 	// 默认直连

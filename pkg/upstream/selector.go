@@ -70,6 +70,8 @@ func (s *DynamicUpstreamSelector) SelectConnection(targetHost string, targetPort
 		return s.createSOCKS5Connection(selectedConfig, targetHost, targetPort)
 	case interfaces.UpstreamWebSocket:
 		return s.createWebSocketConnection(selectedConfig, targetHost, targetPort)
+	case interfaces.UpstreamHTTP:
+		return s.createHTTPConnection(selectedConfig, targetHost, targetPort)
 	default:
 		return s.createDirectConnection(targetHost, targetPort)
 	}
@@ -271,6 +273,127 @@ func (s *DynamicUpstreamSelector) createWebSocketConnection(config *interfaces.U
 
 	// 返回客户端连接
 	return &WebSocketConnWrapper{client: client, conn: clientConn}, nil
+}
+
+// createHTTPConnection 创建HTTP代理连接
+func (s *DynamicUpstreamSelector) createHTTPConnection(config *interfaces.UpstreamConfig, targetHost string, targetPort int) (net.Conn, error) {
+	if config.ProxyAddress == "" {
+		return nil, fmt.Errorf("HTTP proxy address not configured")
+	}
+
+	// 使用工厂函数创建HTTP客户端
+	client, err := interfaces.CreateClient("http", interfaces.ClientConfig{
+		Username:   config.ProxyUsername,
+		Password:   config.ProxyPassword,
+		ServerAddr: config.ProxyAddress,
+		Protocol:   "http",
+		Timeout:    config.Timeout,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+
+	// 连接到目标
+	err = client.Connect(targetHost, targetPort)
+	if err != nil {
+		s.UpdateHealthStatus(config.ProxyAddress, false)
+		return nil, fmt.Errorf("failed to connect via HTTP proxy: %w", err)
+	}
+
+	// 创建一个管道来模拟net.Conn接口
+	clientConn, serverConn := net.Pipe()
+
+	// 启动goroutine来处理数据转发
+	go func() {
+		defer clientConn.Close()
+		defer serverConn.Close()
+
+		// 使用客户端的ForwardData方法进行数据转发
+		if httpClient, ok := client.(interface {
+			ForwardData(net.Conn) error
+		}); ok {
+			err := httpClient.ForwardData(serverConn)
+			if err != nil {
+				fmt.Printf("HTTP forward data error: %v\n", err)
+			}
+		}
+	}()
+
+	// 返回客户端连接
+	return &HTTPConnWrapper{client: client, conn: clientConn}, nil
+}
+
+// HTTPConnWrapper HTTP客户端连接包装器，实现net.Conn接口
+type HTTPConnWrapper struct {
+	client interfaces.ProxyClient
+	conn   net.Conn
+	closed bool
+}
+
+func (w *HTTPConnWrapper) Read(b []byte) (n int, err error) {
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Read(b)
+}
+
+func (w *HTTPConnWrapper) Write(b []byte) (n int, err error) {
+	if w.closed {
+		return 0, net.ErrClosed
+	}
+	if w.conn == nil {
+		return 0, fmt.Errorf("connection not established")
+	}
+	return w.conn.Write(b)
+}
+
+func (w *HTTPConnWrapper) Close() error {
+	if w.closed {
+		return nil
+	}
+	w.closed = true
+	if w.conn != nil {
+		return w.conn.Close()
+	}
+	return w.client.Close()
+}
+
+func (w *HTTPConnWrapper) LocalAddr() net.Addr {
+	if w.client.NetConn() != nil {
+		return w.client.NetConn().LocalAddr()
+	}
+	return newTCPAddrWrapper("local")
+}
+
+func (w *HTTPConnWrapper) RemoteAddr() net.Addr {
+	if w.client.NetConn() != nil {
+		return w.client.NetConn().RemoteAddr()
+	}
+	return newTCPAddrWrapper("remote")
+}
+
+func (w *HTTPConnWrapper) SetDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetDeadline(t)
+	}
+	return nil
+}
+
+func (w *HTTPConnWrapper) SetReadDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetReadDeadline(t)
+	}
+	return nil
+}
+
+func (w *HTTPConnWrapper) SetWriteDeadline(t time.Time) error {
+	if w.conn != nil {
+		return w.conn.SetWriteDeadline(t)
+	}
+	return nil
 }
 
 // 保持原有的连接包装器实现
