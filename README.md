@@ -11,7 +11,7 @@
 
 ### 🚀 核心功能
 
-- **多协议支持**: 支持 SOCKS5 和 WebSocket 协议
+- **多协议支持**: 支持 SOCKS5、WebSocket 和 HTTP 协议
 - **协议转换**: 支持不同协议间的数据转发
 - **上游连接选择**: 支持多种上游连接方式和动态选择策略
 - **认证机制**: 支持用户名密码认证
@@ -135,7 +135,7 @@ go build -o proxy-server.exe cmd/main.go
 ##### 上游连接类型
 
 - `type`: `"direct"` = TCP 直连，`"socks5"` = SOCKS5 代理，`"websocket"` =
-  WebSocket 代理
+  WebSocket 代理，`"http"` = HTTP 代理
 - `proxy_address`: 代理服务器地址
 - `proxy_username`: 代理用户名
 - `proxy_password`: 代理密码
@@ -199,9 +199,53 @@ go build -o proxy-server.exe cmd/main.go
       "proxy_username": "ws_user",
       "proxy_password": "ws_pass",
       "timeout": 30000000000
+    },
+    {
+      "type": "http",
+      "proxy_address": "http://http-proxy.example.com:8080",
+      "proxy_username": "http_user",
+      "proxy_password": "http_pass",
+      "timeout": 30000000000
     }
   ]
 }
+```
+
+### HTTP 代理支持
+
+系统支持使用 HTTP 代理作为上游连接方式，提供完整的 HTTP 代理功能。
+
+#### HTTP 代理配置
+
+- **类型**: `http`
+- **地址格式**: `http://proxy-server:port`
+- **认证**: 支持基本认证（Basic Authentication）
+- **协议支持**: 支持 HTTP/HTTPS 请求转发
+
+#### HTTP 代理特性
+
+- **CONNECT 方法**: 支持 HTTPS 连接的隧道模式
+- **认证机制**: 支持 Proxy-Authorization 头部认证
+- **连接池**: 实现连接复用提高性能
+- **超时控制**: 支持连接和读写超时设置
+
+#### 使用示例
+
+```json
+{
+  "type": "http",
+  "proxy_address": "http://proxy.example.com:8080",
+  "proxy_username": "user",
+  "proxy_password": "password",
+  "timeout": 30000000000
+}
+```
+
+#### 命令行启动示例
+
+```bash
+# 使用 HTTP 代理作为上游连接
+./proxy-server.exe -mode server -protocol socks5 -addr :1080 -upstream-type http -upstream-address http://127.0.0.1:8080 -upstream-username user -upstream-password pass
 ```
 
 ## 上游连接选择策略
