@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"bufio"
@@ -19,8 +19,8 @@ import (
 	"time"
 )
 
-// TestWebSocketSocks5Proxy 测试WebSocket和SOCKS5级联代理服务器
-func TestWebSocketSocks5Proxy(t *testing.T) {
+// runWebSocketSocks5Proxy 测试WebSocket和SOCKS5级联代理服务器
+func runWebSocketSocks5Proxy(t *testing.T) {
 	// 创建进程管理器
 	processManager := NewProcessManager()
 	defer processManager.CleanupAll()
@@ -65,10 +65,10 @@ func TestWebSocketSocks5Proxy(t *testing.T) {
 	// 编译代理服务器
 	testResults = append(testResults, "## 1. 编译代理服务器")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `go build -o main.exe ./cmd/main.go`")
+	testResults = append(testResults, "执行命令: `go build -o main.exe ../cmd/main.go`")
 	testResults = append(testResults, "")
 
-	buildCmd := exec.Command("go", "build", "-o", "main.exe", "./cmd/main.go")
+	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
 	buildCmd.Stdout = websocketWriter
 	buildCmd.Stderr = websocketWriter
 
@@ -479,7 +479,7 @@ func TestMain2(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		TestWebSocketSocks5Proxy(t)
+		runWebSocketSocks5Proxy(t)
 		resultChan <- true
 	}()
 

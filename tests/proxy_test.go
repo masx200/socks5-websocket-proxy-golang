@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"bufio"
@@ -91,8 +91,8 @@ func (pm *ProcessManager) GetPIDs() []string {
 	return pids
 }
 
-// TestProxyServer 测试HTTP代理服务器的基本功能
-func TestProxyServer(t *testing.T) {
+// runProxyServer 测试HTTP代理服务器的基本功能
+func runProxyServer(t *testing.T) {
 	// 创建进程管理器
 	processManager := NewProcessManager()
 	defer processManager.CleanupAll()
@@ -198,12 +198,12 @@ func TestProxyServer(t *testing.T) {
 	// 启动代理服务器
 	testResults = append(testResults, "## 1. 启动代理服务器")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `go run -v ./cmd/main.go`")
+	testResults = append(testResults, "执行命令: `go run -v ../cmd/main.go`")
 	testResults = append(testResults, "")
 
 	// 先编译代理服务器
 	testResults = append(testResults, "编译代理服务器...")
-	buildCmd := exec.Command("go", "build", "-o", "main.exe", "./cmd/main.go")
+	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
 
@@ -726,7 +726,7 @@ func TestMain1(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		TestProxyServer(t)
+		runProxyServer(t)
 		resultChan <- 0
 	}()
 
