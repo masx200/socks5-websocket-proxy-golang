@@ -136,7 +136,10 @@ go build -o proxy-server.exe cmd/main.go
 
 - `type`: `"direct"` = TCP 直连，`"socks5"` = SOCKS5 代理，`"websocket"` =
   WebSocket 代理，`"http"` = HTTP 代理
-- `proxy_address`: 代理服务器地址
+- `proxy_address`: 代理服务器地址，支持以下协议前缀：
+  - `tcp://` 或 `socks5://` - 普通 TCP 连接
+  - `tls://` 或 `socks5s://` - TLS 加密连接
+  - 无前缀 - 默认使用 TCP 连接
 - `proxy_username`: 代理用户名
 - `proxy_password`: 代理密码
 - `timeout`: 代理连接超时时间

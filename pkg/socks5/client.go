@@ -198,19 +198,19 @@ func (c *SOCKS5Client) createSOCKS5Dialer() (proxy.Dialer, error) {
 
 // parseServerAddr 解析服务器地址，支持协议前缀
 func (c *SOCKS5Client) parseServerAddr(addr string) (string, bool, error) {
-	if after, ok :=strings.CutPrefix(addr, "tls://"); ok  {
+	if after, ok := strings.CutPrefix(addr, "tls://"); ok {
 		// 移除tls://前缀，并去除末尾的斜杠
 		parsedAddr := strings.TrimSuffix(after, "/")
 		return parsedAddr, true, nil
-	} else if after0, ok0 :=strings.CutPrefix(addr, "tcp://"); ok0  {
+	} else if after0, ok0 := strings.CutPrefix(addr, "tcp://"); ok0 {
 		// 移除tcp://前缀，并去除末尾的斜杠
 		parsedAddr := strings.TrimSuffix(after0, "/")
 		return parsedAddr, false, nil
-	} else if after1, ok1 :=strings.CutPrefix(addr, "socks5s://"); ok1  {
+	} else if after1, ok1 := strings.CutPrefix(addr, "socks5s://"); ok1 {
 		// 移除socks5s://前缀，并去除末尾的斜杠，等同于tls://
 		parsedAddr := strings.TrimSuffix(after1, "/")
 		return parsedAddr, true, nil
-	} else if after2, ok2 :=strings.CutPrefix(addr, "socks5://"); ok2  {
+	} else if after2, ok2 := strings.CutPrefix(addr, "socks5://"); ok2 {
 		// 移除socks5://前缀，并去除末尾的斜杠，等同于tcp://
 		parsedAddr := strings.TrimSuffix(after2, "/")
 		return parsedAddr, false, nil
