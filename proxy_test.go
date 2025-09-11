@@ -21,9 +21,7 @@ import (
 )
 
 import (
-	
 	"strconv"
-	
 )
 
 // ProcessManager 进程管理器
@@ -714,7 +712,7 @@ func writeTestResults1(results []string) error {
 }
 
 // TestMain1 主测试函数
-func TestMain(m *testing.M) {
+func TestMain1(t *testing.T) {
 	// 创建带有30秒超时的上下文（增加超时时间）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -728,8 +726,8 @@ func TestMain(m *testing.M) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		code := m.Run()
-		resultChan <- code
+		TestProxyServer(t)
+		resultChan <- 0
 	}()
 
 	// 等待测试完成或超时
