@@ -486,7 +486,7 @@ func TestMain2(t *testing.T) {
 	// 等待测试完成或超时
 	select {
 	case <-resultChan:
-		t.
+		
 		// 测试正常完成
 		return
 	case <-ctx.Done():
