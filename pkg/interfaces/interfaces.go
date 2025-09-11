@@ -18,6 +18,7 @@ const (
 	UpstreamDirect    UpstreamType = "direct"    // TCP直连
 	UpstreamSOCKS5    UpstreamType = "socks5"    // SOCKS5代理
 	UpstreamWebSocket UpstreamType = "websocket" // WebSocket代理
+	UpstreamHTTP      UpstreamType = "http"      // HTTP代理
 )
 
 // UpstreamConfig 上游连接配置

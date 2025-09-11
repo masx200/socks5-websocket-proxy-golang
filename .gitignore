@@ -1,3 +1,4 @@
 *.exe
 proxy-server
 *.exe~
+.codebuddy

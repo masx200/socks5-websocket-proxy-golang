@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/http"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/socks5"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/websocket"
@@ -24,6 +25,7 @@ const (
 	UpstreamDirect    = interfaces.UpstreamDirect
 	UpstreamWebSocket = interfaces.UpstreamWebSocket
 	UpstreamSOCKS5    = interfaces.UpstreamSOCKS5
+	UpstreamHTTP      = interfaces.UpstreamHTTP
 )
 
 // CreateClient 客户端创建工厂
@@ -33,6 +35,8 @@ func CreateClient(protocol string, config ClientConfig) (ProxyClient, error) {
 		return socks5.NewSOCKS5Client(config), nil
 	case "websocket":
 		return websocket.NewWebSocketClient(config), nil
+	case "http":
+		return http.NewHttpProxyAdapter(config)
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", protocol)
 	}
