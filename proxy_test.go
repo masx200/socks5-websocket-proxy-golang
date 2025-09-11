@@ -732,9 +732,9 @@ func TestMain1(t *testing.T) {
 
 	// 等待测试完成或超时
 	select {
-	case code := <-resultChan:
+	case <-resultChan:
 		// 测试正常完成
-		os.Exit(code)
+		return
 	case <-ctx.Done():
 		// 超时或取消
 		log.Println("\n⏰ 测试超时（30秒），强制退出...")
@@ -782,7 +782,7 @@ func TestMain1(t *testing.T) {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 
-		// 强制退出
-		os.Exit(1)
+		// 标记测试失败
+		t.Fatal("测试超时")
 	}
 }
