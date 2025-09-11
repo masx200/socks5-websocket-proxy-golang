@@ -191,7 +191,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err1 := curlCmd1.Run()
 	output1 := curlOutput1.Bytes()
-	
+
 	// 检查进程退出状态码
 	exitCode1 := 0
 	if curlCmd1.ProcessState != nil {
@@ -229,7 +229,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err2 := curlCmd2.Run()
 	output2 := curlOutput2.Bytes()
-	
+
 	// 检查进程退出状态码
 	exitCode2 := 0
 	if curlCmd2.ProcessState != nil {
@@ -500,7 +500,7 @@ func TestMain2(t *testing.T) {
 	// 等待测试完成或超时
 	select {
 	case <-resultChan:
-		
+
 		// 测试正常完成
 		return
 	case <-ctx.Done():

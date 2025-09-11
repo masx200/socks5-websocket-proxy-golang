@@ -293,7 +293,7 @@ func runProxyServer(t *testing.T) {
 	// 启动curl进程
 	err1 := curlCmd1.Run()
 	output1 := curlOutput1.Bytes()
-	
+
 	// 检查进程退出状态码
 	exitCode1 := 0
 	if curlCmd1.ProcessState != nil {
@@ -336,7 +336,7 @@ func runProxyServer(t *testing.T) {
 	// 启动curl进程
 	err2 := curlCmd2.Run()
 	output2 := curlOutput2.Bytes()
-	
+
 	// 检查进程退出状态码
 	exitCode2 := 0
 	if curlCmd2.ProcessState != nil {
@@ -379,7 +379,7 @@ func runProxyServer(t *testing.T) {
 	// 启动curl进程
 	err3 := curlCmd3.Run()
 	output3 := curlOutput3.Bytes()
-	
+
 	// 检查进程退出状态码
 	exitCode3 := 0
 	if curlCmd3.ProcessState != nil {
