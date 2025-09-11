@@ -111,6 +111,54 @@ go build -o proxy-server.exe cmd/main.go
 **任务进度**: 请查看 [任务清单](TASK_LIST.md)
 了解项目的开发进度、已完成功能和待完成任务。
 
+## 命令行参数说明
+
+程序支持以下命令行参数，可以通过 `-h` 或 `--help` 查看帮助信息：
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `-addr` | string | `":1080"` | 监听地址(服务端)或服务器地址(客户端) |
+| `-config` | string | `""` | 配置文件路径 |
+| `-host` | string | `""` | 目标主机(客户端模式) |
+| `-mode` | string | `"server"` | 运行模式: server 或 client |
+| `-password` | string | `""` | 密码 |
+| `-port` | int | `0` | 目标端口(客户端模式) |
+| `-protocol` | string | `"socks5"` | 协议类型: socks5 或 websocket |
+| `-timeout` | int | `30` | 超时时间(秒) |
+| `-upstream-address` | string | `""` | 上游代理地址 |
+| `-upstream-password` | string | `""` | 上游代理密码 |
+| `-upstream-type` | string | `""` | 上游连接类型: direct, socks5, websocket, http |
+| `-upstream-username` | string | `""` | 上游代理用户名 |
+| `-username` | string | `""` | 用户名 |
+
+### 参数使用示例
+
+#### 服务端模式示例
+
+```bash
+# 基本SOCKS5服务端
+./proxy-server.exe -mode server -protocol socks5 -addr :1080 -username admin -password password123
+
+# 带上游代理的SOCKS5服务端
+./proxy-server.exe -mode server -protocol socks5 -addr :1080 -upstream-type socks5 -upstream-address tcp://127.0.0.1:1081 -upstream-username user -upstream-password pass
+
+# WebSocket服务端
+./proxy-server.exe -mode server -protocol websocket -addr :8080 -username admin -password password123
+
+# 使用配置文件
+./proxy-server.exe -mode server -config config/server-config.json
+```
+
+#### 客户端模式示例
+
+```bash
+# 基本客户端连接
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
+
+# 带超时设置的客户端
+./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 443 -timeout 60
+```
+
 ## 配置说明
 
 ### 配置文件格式
