@@ -41,9 +41,9 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 		shutdown: make(chan struct{}),
 		upgrader: &websocket.Upgrader{
 			EnableCompression: true,
-			HandshakeTimeout: config.Timeout,
-			ReadBufferSize:   1024,
-			WriteBufferSize:  1024,
+			HandshakeTimeout:  config.Timeout,
+			ReadBufferSize:    1024,
+			WriteBufferSize:   1024,
 			CheckOrigin: func(r *http.Request) bool {
 				// 允许所有来源，生产环境中应该限制
 				return true
