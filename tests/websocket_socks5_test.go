@@ -191,13 +191,20 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err1 := curlCmd1.Run()
 	output1 := curlOutput1.Bytes()
+	
+	// 检查进程退出状态码
+	exitCode1 := 0
+	if curlCmd1.ProcessState != nil {
+		exitCode1 = curlCmd1.ProcessState.ExitCode()
+	}
 
 	processManager.AddProcess(curlCmd1)
-	testResults = append(testResults, fmt.Sprintf("📋 Curl测试1进程PID: %d", curlCmd1.Process.Pid))
+	testResults = append(testResults, fmt.Sprintf("📋 Curl测试1进程PID: %d, 退出状态码: %d", curlCmd1.Process.Pid, exitCode1))
 	testResults = append(testResults, "")
 
-	if err1 != nil {
+	if err1 != nil || exitCode1 != 0 {
 		testResults = append(testResults, fmt.Sprintf("❌ 测试失败: %v", err1))
+		testResults = append(testResults, fmt.Sprintf("退出状态码: %d", exitCode1))
 		testResults = append(testResults, fmt.Sprintf("错误输出: %s", string(output1)))
 	} else {
 		testResults = append(testResults, "✅ 测试成功")
@@ -222,13 +229,20 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err2 := curlCmd2.Run()
 	output2 := curlOutput2.Bytes()
+	
+	// 检查进程退出状态码
+	exitCode2 := 0
+	if curlCmd2.ProcessState != nil {
+		exitCode2 = curlCmd2.ProcessState.ExitCode()
+	}
 
 	processManager.AddProcess(curlCmd2)
-	testResults = append(testResults, fmt.Sprintf("📋 Curl测试2进程PID: %d", curlCmd2.Process.Pid))
+	testResults = append(testResults, fmt.Sprintf("📋 Curl测试2进程PID: %d, 退出状态码: %d", curlCmd2.Process.Pid, exitCode2))
 	testResults = append(testResults, "")
 
-	if err2 != nil {
+	if err2 != nil || exitCode2 != 0 {
 		testResults = append(testResults, fmt.Sprintf("❌ 测试失败: %v", err2))
+		testResults = append(testResults, fmt.Sprintf("退出状态码: %d", exitCode2))
 		testResults = append(testResults, fmt.Sprintf("错误输出: %s", string(output2)))
 	} else {
 		testResults = append(testResults, "✅ 测试成功")
