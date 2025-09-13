@@ -2,3 +2,5 @@
 proxy-server
 *.exe~
 .codebuddy
+.claude
+.kilocode
