@@ -20,79 +20,8 @@ import (
 	"time"
 )
 
-import (
-	"strconv"
-)
-
-// ProcessManager 进程管理器
-type ProcessManager struct {
-	processes []*exec.Cmd
-	mutex     sync.Mutex
-}
-
-// NewProcessManager 创建新的进程管理器
-func NewProcessManager() *ProcessManager {
-	return &ProcessManager{
-		processes: make([]*exec.Cmd, 0),
-	}
-}
-
-// AddProcess 添加进程到管理器
-func (pm *ProcessManager) AddProcess(cmd *exec.Cmd) {
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-	pm.processes = append(pm.processes, cmd)
-}
-
-// CleanupAll 清理所有进程
-func (pm *ProcessManager) CleanupAll() {
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-
-	for _, cmd := range pm.processes {
-		if cmd.Process != nil {
-			// Windows系统下使用更强制的方式终止进程
-			if runtime.GOOS == "windows" {
-				// 在Windows上，我们需要终止整个进程树
-				cmd.Process.Kill()
-				// 等待进程退出
-				cmd.Wait()
-
-				// 尝试查找并终止子进程
-				pm.killChildProcesses(cmd.Process.Pid)
-			} else {
-				// Unix系统下使用进程组
-				cmd.Process.Kill()
-				cmd.Wait()
-			}
-		}
-	}
-	pm.processes = make([]*exec.Cmd, 0)
-}
-
-// killChildProcesses 在Windows上终止子进程
-func (pm *ProcessManager) killChildProcesses(parentPid int) {
-	// 在Windows上使用taskkill命令终止进程树
-	killCmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(parentPid))
-	killCmd.Run() // 忽略错误，因为进程可能已经退出
-}
-
-// GetPIDs 获取所有进程的PID
-func (pm *ProcessManager) GetPIDs() []string {
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-
-	var pids []string
-	for _, cmd := range pm.processes {
-		if cmd.Process != nil {
-			pids = append(pids, strconv.Itoa(cmd.Process.Pid))
-		}
-	}
-	return pids
-}
-
-// runProxyServer 测试HTTP代理服务器的基本功能
-func runProxyServer(t *testing.T) {
+// runProxyServer2 测试HTTP代理服务器的基本功能
+func runProxyServer2(t *testing.T) {
 	// 创建进程管理器
 	processManager := NewProcessManager()
 	defer processManager.CleanupAll()
@@ -173,7 +102,7 @@ func runProxyServer(t *testing.T) {
 		timeoutTestResults = append(timeoutTestResults, "```")
 
 		// 写入超时测试记录
-		if err := writeTestResults1(timeoutTestResults); err != nil {
+		if err := writeTestResults2(timeoutTestResults); err != nil {
 			log.Printf("写入超时测试记录失败: %v\n", err)
 		}
 		processManager.CleanupAll()
@@ -191,7 +120,7 @@ func runProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 检查端口是否被占用
-	if isPortOccupied1(1080) {
+	if isPortOccupied2(1080) {
 		t.Fatal("端口1080已被占用，请先停止占用该端口的进程")
 	}
 
@@ -214,7 +143,7 @@ func runProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 启动代理服务器进程（使用编译后的可执行文件）
-	cmd := exec.Command("./main.exe")
+	cmd := exec.Command("./main.exe", "-dohurl", "https://dns.alidns.com/dns-query", "-dohip", "223.5.5.5", "-dohip", "223.6.6.6", "-dohurl", "https://dns.alidns.com/dns-query", "-dohalpn", "h2", "-dohalpn", "h3")
 	cmd.Stdout = multiWriter
 	cmd.Stderr = multiWriter
 
@@ -252,7 +181,7 @@ func runProxyServer(t *testing.T) {
 	// 等待服务器启动，增加重试机制
 	serverStarted := false
 	for i := 0; i < 10; i++ {
-		if isProxyServerRunning() {
+		if isProxyServerRunning2() {
 			serverStarted = true
 			break
 		}
@@ -414,7 +343,7 @@ func runProxyServer(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 写入测试记录到文件
-	err = writeTestResults1(testResults)
+	err = writeTestResults2(testResults)
 	if err != nil {
 		t.Errorf("写入测试记录失败: %v", err)
 	}
@@ -558,14 +487,14 @@ func runProxyServer(t *testing.T) {
 		testResults = append(testResults, "")
 
 		// 验证端口是否已释放
-		if !isPortOccupied1(1080) {
+		if !isPortOccupied2(1080) {
 			testResults = append(testResults, "✅ 端口1080已成功释放")
 		} else {
 			testResults = append(testResults, "❌ 端口1080仍被占用")
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults1(testResults)
+		err = writeTestResults2(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -648,15 +577,15 @@ func runProxyServer(t *testing.T) {
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults1(testResults)
+		err = writeTestResults2(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
 	}
 }
 
-// isPortOccupied1 检查端口是否被占用
-func isPortOccupied1(port int) bool {
+// isPortOccupied2 检查端口是否被占用
+func isPortOccupied2(port int) bool {
 	addr := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -666,8 +595,8 @@ func isPortOccupied1(port int) bool {
 	return false
 }
 
-// isProxyServerRunning 检查代理服务器是否正在运行
-func isProxyServerRunning() bool {
+// isProxyServerRunning2 检查代理服务器是否正在运行
+func isProxyServerRunning2() bool {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -699,8 +628,8 @@ func isProxyServerRunning() bool {
 	return resp.StatusCode == 200
 }
 
-// writeTestResults1 写入测试结果到文件
-func writeTestResults1(results []string) error {
+// writeTestResults2 写入测试结果到文件
+func writeTestResults2(results []string) error {
 	// 写入到测试记录.md
 	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -732,8 +661,8 @@ func writeTestResults1(results []string) error {
 	return writer.Flush()
 }
 
-// TestMain1 主测试函数
-func TestMain1(t *testing.T) {
+// TestMain3 主测试函数
+func TestMain3(t *testing.T) {
 	// 创建带有30秒超时的上下文（增加超时时间）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -747,7 +676,7 @@ func TestMain1(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		runProxyServer(t)
+		runProxyServer2(t)
 		resultChan <- 0
 	}()
 
@@ -799,7 +728,7 @@ func TestMain1(t *testing.T) {
 		}
 
 		// 写入超时记录
-		if err := writeTestResults1(timeoutMessage); err != nil {
+		if err := writeTestResults2(timeoutMessage); err != nil {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 

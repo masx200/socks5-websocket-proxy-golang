@@ -55,10 +55,10 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 检查端口是否被占用
-	if isPortOccupied(8080) {
+	if isPortOccupied3(8080) {
 		t.Fatal("端口8080已被占用，请先停止占用该端口的进程")
 	}
-	if isPortOccupied(10810) {
+	if isPortOccupied3(10810) {
 		t.Fatal("端口10810已被占用，请先停止占用该端口的进程")
 	}
 
@@ -109,7 +109,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	testResults = append(testResults, "等待WebSocket服务器启动...")
 	websocketStarted := false
 	for i := 0; i < 10; i++ {
-		if isPortOccupied(8080) {
+		if isPortOccupied3(8080) {
 			websocketStarted = true
 			break
 		}
@@ -262,7 +262,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 写入测试记录到文件
-	err = writeTestResults(testResults)
+	err = writeTestResults3(testResults)
 	if err != nil {
 		t.Errorf("写入测试记录失败: %v", err)
 	}
@@ -350,19 +350,19 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 		testResults = append(testResults, "")
 
 		// 验证端口是否已释放
-		if !isPortOccupied(8080) {
+		if !isPortOccupied3(8080) {
 			testResults = append(testResults, "✅ 端口8080已成功释放")
 		} else {
 			testResults = append(testResults, "❌ 端口8080仍被占用")
 		}
-		if !isPortOccupied(10810) {
+		if !isPortOccupied3(10810) {
 			testResults = append(testResults, "✅ 端口10810已成功释放")
 		} else {
 			testResults = append(testResults, "❌ 端口10810仍被占用")
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults(testResults)
+		err = writeTestResults3(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -397,7 +397,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 		}
 
 		// 重新写入测试记录
-		err = writeTestResults(testResults)
+		err = writeTestResults3(testResults)
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -437,8 +437,8 @@ func isSocks5ProxyRunning() bool {
 	return resp.StatusCode == 200
 }
 
-// isPortOccupied 检查端口是否被占用
-func isPortOccupied(port int) bool {
+// isPortOccupied3 检查端口是否被占用
+func isPortOccupied3(port int) bool {
 	addr := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -448,8 +448,8 @@ func isPortOccupied(port int) bool {
 	return false
 }
 
-// writeTestResults 写入测试结果到文件
-func writeTestResults(results []string) error {
+// writeTestResults3 写入测试结果到文件
+func writeTestResults3(results []string) error {
 	// 写入到测试记录.md
 	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -533,7 +533,7 @@ func TestMain2(t *testing.T) {
 		}
 
 		// 写入超时记录
-		if err := writeTestResults(timeoutMessage); err != nil {
+		if err := writeTestResults3(timeoutMessage); err != nil {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 
