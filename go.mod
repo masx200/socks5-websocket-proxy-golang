@@ -22,7 +22,7 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.44.0 // indirect
+	github.com/quic-go/quic-go v0.48.2 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tantalor93/doq-go v0.12.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
