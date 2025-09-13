@@ -15,7 +15,7 @@ type HttpProxyAdapter struct {
 // NewHttpProxyAdapter 创建HTTP代理适配器
 func NewHttpProxyAdapter(config interfaces.ClientConfig) (interfaces.ProxyClient, error) {
 	// 转换配置
-	httpConfig := ClientConfig{
+	httpConfig := interfaces.ClientConfig{
 		Username:   config.Username,
 		Password:   config.Password,
 		ServerAddr: config.ServerAddr,
