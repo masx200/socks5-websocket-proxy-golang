@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armon/go-socks5"
+	"gitee.com/masx200/go-socks5"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/http"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
@@ -181,7 +181,7 @@ func (s *SOCKS5Server) HandleConnection(conn net.Conn) error {
 	localAddr := conn.LocalAddr().String()
 	log.Printf("[SOCKS5-CONN] Connection details - Local: %s, Remote: %s\n", localAddr, clientAddr)
 
-	// 使用github.com/armon/go-socks5库处理连接
+	// 使用gitee.com/masx200/go-socks5库处理连接
 	err := s.server.ServeConn(conn)
 	duration := time.Since(startTime)
 
