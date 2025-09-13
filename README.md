@@ -107,6 +107,8 @@ go build -o proxy-server.exe cmd/main.go
 | 参数                 | 类型   | 默认值     | 说明                                                                              |
 | -------------------- | ------ | ---------- | --------------------------------------------------------------------------------- |
 | `-addr`              | string | `":1080"`  | 监听地址                                                                          |
+| `-listen-host`       | string | `""`       | 监听主机地址，与 listen-port 合并后等同于 addr 参数                               |
+| `-listen-port`       | string | `""`       | 监听端口号，与 listen-host 合并后等同于 addr 参数                                 |
 | `-config`            | string | `""`       | 配置文件路径                                                                      |
 | `-mode`              | string | `"server"` | 运行模式: server                                                                  |
 | `-password`          | string | `""`       | 密码                                                                              |
@@ -125,6 +127,15 @@ go build -o proxy-server.exe cmd/main.go
 ```bash
 # 基本SOCKS5服务端
 ./proxy-server.exe -mode server -protocol socks5 -addr :1080 -username admin -password password123
+
+# 使用 listen-host 和 listen-port 参数
+./proxy-server.exe -mode server -protocol socks5 -listen-host 0.0.0.0 -listen-port 1080 -username admin -password password123
+
+# 只使用 listen-host 参数（使用默认端口）
+./proxy-server.exe -mode server -protocol socks5 -listen-host 192.168.1.100 -username admin -password password123
+
+# 只使用 listen-port 参数（使用默认主机）
+./proxy-server.exe -mode server -protocol socks5 -listen-port 8080 -username admin -password password123
 
 # 带上游代理的SOCKS5服务端
 ./proxy-server.exe -mode server -protocol socks5 -addr :1080 -upstream-type socks5 -upstream-address tcp://127.0.0.1:1081 -upstream-username user -upstream-password pass

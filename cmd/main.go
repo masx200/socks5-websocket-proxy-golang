@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,6 +22,8 @@ func main() {
 	mode := flag.String("mode", "server", "运行模式: server")
 	protocol := flag.String("protocol", "socks5", "协议类型: socks5 或 websocket")
 	addr := flag.String("addr", ":1080", "监听地址(服务端)或服务器地址(客户端)")
+	listenHost := flag.String("listen-host", "", "监听主机地址")
+	listenPort := flag.String("listen-port", "", "监听端口号")
 	username := flag.String("username", "", "用户名")
 	password := flag.String("password", "", "密码")
 	timeout := flag.Int("timeout", 30, "超时时间(秒)")
@@ -31,6 +34,44 @@ func main() {
 	upstreamPassword := flag.String("upstream-password", "", "上游代理密码")
 
 	flag.Parse()
+
+	// 处理 listen-host 和 listen-port 参数
+	if *listenHost != "" || *listenPort != "" {
+		// 如果同时提供了 listen-host 和 listen-port
+		if *listenHost != "" && *listenPort != "" {
+			*addr = *listenHost + ":" + *listenPort
+		} else if *listenHost != "" {
+			// 只提供了 listen-host，需要从现有 addr 中提取端口
+			if strings.HasPrefix(*addr, ":") {
+				*addr = *listenHost + *addr
+			} else {
+				// 如果 addr 不是以 : 开头，尝试提取端口
+				if lastColon := strings.LastIndex(*addr, ":"); lastColon != -1 {
+					port := (*addr)[lastColon:]
+					*addr = *listenHost + port
+				} else {
+					// 如果没有找到端口，使用默认端口
+					*addr = *listenHost + ":1080"
+				}
+			}
+		} else if *listenPort != "" {
+			// 只提供了 listen-port，需要从现有 addr 中提取主机
+			if strings.HasPrefix(*addr, ":") {
+				// 如果 addr 以 : 开头，说明没有指定主机，使用默认主机
+				*addr = ":" + *listenPort
+			} else {
+				// 如果 addr 不是以 : 开头，尝试提取主机
+				if lastColon := strings.LastIndex(*addr, ":"); lastColon != -1 {
+					host := (*addr)[:lastColon]
+					*addr = host + ":" + *listenPort
+				} else {
+					// 如果没有找到端口，直接添加端口
+					*addr = *addr + ":" + *listenPort
+				}
+			}
+		}
+		log.Printf("使用监听地址: %s (由 listen-host=%s, listen-port=%s 合并而成)", *addr, *listenHost, *listenPort)
+	}
 
 	// 设置日志
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
