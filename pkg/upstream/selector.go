@@ -186,27 +186,48 @@ func (s *DynamicUpstreamSelector) UpdateHealthStatus(address string, healthy boo
 // createDirectConnection 创建TCP直连
 func (s *DynamicUpstreamSelector) createDirectConnection(targetHost string, targetPort int) (net.Conn, error) {
 	timeout := 30 * time.Second // 默认30秒超时
+	portStr := fmt.Sprint(targetPort)
 
-	// 如果有解析器，尝试使用解析器解析域名
+	// 如果目标主机是IP地址，直接连接
+	if net.ParseIP(targetHost) != nil {
+		return net.DialTimeout("tcp", net.JoinHostPort(targetHost, portStr), timeout)
+	}
+
+	// 如果有解析器，优先使用解析器的 LookupIP 方法获取所有IP地址
 	if s.resolver != nil {
-		// 尝试使用解析器解析域名
-		if net.ParseIP(targetHost) == nil {
-			// 如果不是IP地址，尝试使用解析器解析
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 
-			_, ip, err := s.resolver.Resolve(ctx, targetHost)
-			if err == nil && ip != nil {
-				// 使用解析到的IP地址
-				targetHost = ip.String()
-				log.Printf("[UPSTREAM] Resolved '%s' to '%s' using custom resolver", targetHost, ip)
-			} else {
-				log.Printf("[UPSTREAM] Custom resolver failed for '%s', falling back to system DNS: %v", targetHost, err)
+		ips, err := s.resolver.LookupIP(ctx, "tcp", targetHost)
+		if err == nil && len(ips) > 0 {
+			log.Printf("[UPSTREAM] Resolved '%s' to %d IPs using custom resolver: %v", targetHost, len(ips), ips)
+
+			// 按照解析到的IP地址列表依次尝试连接
+			var lastErr error
+			for _, ip := range ips {
+				targetAddr := net.JoinHostPort(ip.String(), portStr)
+				log.Printf("[UPSTREAM] Attempting connection to '%s'", targetAddr)
+
+				conn, err := net.DialTimeout("tcp", targetAddr, timeout)
+				if err == nil {
+					log.Printf("[UPSTREAM] Successfully connected to '%s'", targetAddr)
+					return conn, nil
+				}
+
+				log.Printf("[UPSTREAM] Failed to connect to '%s': %v", targetAddr, err)
+				lastErr = err
 			}
+
+			// 所有IP地址都连接失败
+			return nil, fmt.Errorf("all IP addresses failed for '%s', last error: %w", targetHost, lastErr)
+		} else {
+			log.Printf("[UPSTREAM] Custom resolver LookupIP failed for '%s': %v, falling back to system DNS", targetHost, err)
 		}
 	}
 
-	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
+	// 回退到系统DNS解析
+	log.Printf("[UPSTREAM] Using system DNS for '%s'", targetHost)
+	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, portStr), timeout)
 }
 
 // createSOCKS5Connection 创建SOCKS5代理连接
