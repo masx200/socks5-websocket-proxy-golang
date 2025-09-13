@@ -18,7 +18,7 @@ require (
 	github.com/fanjindong/go-cache v0.0.6 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20250903194437-c28834ac2320 // indirect
-	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913045850-18b77af0ed7d // indirect
+	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5 // indirect
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
