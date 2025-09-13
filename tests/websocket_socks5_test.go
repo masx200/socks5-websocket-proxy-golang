@@ -39,6 +39,10 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	websocketWriter := io.MultiWriter(os.Stdout, &websocketOutput)
 	socks5Writer := io.MultiWriter(os.Stdout, &socks5Output)
 
+	// 创建带缓冲的写入器来确保日志被及时刷新
+	websocketBufWriter := bufio.NewWriter(websocketWriter)
+	socks5BufWriter := bufio.NewWriter(socks5Writer)
+
 	// 清理可能存在的旧的可执行文件
 	if _, err := os.Stat("main.exe"); err == nil {
 		os.Remove("main.exe")
@@ -155,16 +159,20 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	// 先编译代理服务器
 	testResults = append(testResults, "编译代理服务器...")
 	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
-	buildCmd.Stdout = websocketWriter
-	buildCmd.Stderr = websocketWriter
+	buildCmd.Stdout = websocketBufWriter
+	buildCmd.Stderr = websocketBufWriter
 
 	// 记录编译命令
 	processManager.LogCommand(buildCmd, "BUILD")
 
 	if err := buildCmd.Run(); err != nil {
+		// 刷新缓冲区确保所有日志都被捕获
+		websocketBufWriter.Flush()
 		processManager.LogCommandResult(buildCmd, err, "")
 		t.Fatalf("编译代理服务器失败: %v", err)
 	}
+	// 刷新缓冲区确保所有日志都被捕获
+	websocketBufWriter.Flush()
 	processManager.LogCommandResult(buildCmd, nil, "")
 	testResults = append(testResults, "✅ 代理服务器编译成功")
 	testResults = append(testResults, "")
@@ -176,8 +184,8 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	testResults = append(testResults, "")
 
 	websocketCmd := exec.Command("./main.exe", "-mode", "server", "-protocol", "websocket", "-addr", ":8080")
-	websocketCmd.Stdout = websocketWriter
-	websocketCmd.Stderr = websocketWriter
+	websocketCmd.Stdout = websocketBufWriter
+	websocketCmd.Stderr = websocketBufWriter
 
 	// 设置进程属性，确保能终止所有子进程（跨平台兼容）
 	if runtime.GOOS == "windows" {
@@ -190,12 +198,19 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err := websocketCmd.Start()
 	if err != nil {
+		// 刷新缓冲区确保错误日志被捕获
+		websocketBufWriter.Flush()
 		t.Fatalf("启动WebSocket服务器失败: %v", err)
 	}
 
 	// 将WebSocket服务器进程添加到管理器
 	processManager.AddProcess(websocketCmd)
 	log.Printf("WebSocket服务器已启动，PID: %d\n", websocketCmd.Process.Pid)
+
+	// 等待服务器启动并刷新缓冲区
+	time.Sleep(2 * time.Second)
+	websocketBufWriter.Flush()
+	log.Printf("WebSocket服务器启动检查完成，当前输出长度: %d", websocketOutput.Len())
 
 	// 记录启动命令
 	processManager.LogCommand(websocketCmd, "SERVER")
@@ -222,8 +237,8 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	socks5Cmd := exec.Command("./main.exe", "-mode", "server", "-protocol", "socks5", "-addr", ":10810",
 		"-upstream-type", "websocket", "-upstream-address", "ws://localhost:8080")
-	socks5Cmd.Stdout = socks5Writer
-	socks5Cmd.Stderr = socks5Writer
+	socks5Cmd.Stdout = socks5BufWriter
+	socks5Cmd.Stderr = socks5BufWriter
 
 	// 设置进程属性，确保能终止所有子进程（跨平台兼容）
 	if runtime.GOOS == "windows" {
@@ -236,12 +251,19 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	err = socks5Cmd.Start()
 	if err != nil {
+		// 刷新缓冲区确保错误日志被捕获
+		socks5BufWriter.Flush()
 		t.Fatalf("启动SOCKS5服务器失败: %v", err)
 	}
 
 	// 将SOCKS5服务器进程添加到管理器
 	processManager.AddProcess(socks5Cmd)
 	log.Printf("SOCKS5服务器已启动，PID: %d\n", socks5Cmd.Process.Pid)
+
+	// 等待服务器启动并刷新缓冲区
+	time.Sleep(2 * time.Second)
+	socks5BufWriter.Flush()
+	log.Printf("SOCKS5服务器启动检查完成，当前输出长度: %d", socks5Output.Len())
 
 	// 记录启动命令
 	processManager.LogCommand(socks5Cmd, "SERVER")
@@ -450,6 +472,9 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 		// 将WebSocket服务器输出添加到测试记录
 		log.Println("正在记录WebSocket服务器日志...")
 
+		// 刷新缓冲区确保所有日志都被捕获
+		websocketBufWriter.Flush()
+
 		// 使用互斥锁保护对websocketOutput的访问
 		websocketOutputMutex.Lock()
 		websocketOutputLen := websocketOutput.Len()
@@ -491,6 +516,9 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 		// 将SOCKS5服务器输出添加到测试记录
 		log.Println("正在记录SOCKS5服务器日志...")
+
+		// 刷新缓冲区确保所有日志都被捕获
+		socks5BufWriter.Flush()
 
 		// 使用互斥锁保护对socks5Output的访问
 		socks5OutputMutex.Lock()
