@@ -184,7 +184,7 @@ func startServer(initialProtocol, addr, username, password string, timeout time.
 		// 如果有DOH参数，创建解析器并使用带有解析器的服务器
 		if len(proxyoptions) > 0 {
 			log.Printf("检测到DOH配置参数，创建自定义DNS解析器")
-			dohResolver := resolver.CreateHostsAndDohResolver(proxyoptions, nil)
+			dohResolver := resolver.CreateHostsAndDohResolver(proxyoptions, )
 
 			switch strings.ToLower(protocol) {
 			case "socks5":
