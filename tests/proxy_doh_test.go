@@ -20,18 +20,16 @@ import (
 	"time"
 )
 
-// runProxyServer2 测试HTTP代理服务器的基本功能
+// runProxyServer2 测试DOH (DNS over HTTPS) 代理服务器功能
 func runProxyServer2(t *testing.T) {
 	// 创建进程管理器
 	processManager := NewProcessManager()
 	defer processManager.CleanupAll()
+	defer processManager.Close() // 确保日志文件被正确关闭
 
 	// 创建缓冲区来捕获代理服务器的输出
 	var proxyOutput bytes.Buffer
 	var proxyOutputMutex sync.Mutex
-
-	// 简化日志捕获：直接从进程输出中读取
-	// 不再使用复杂的log重定向机制，避免冲突
 
 	// 创建一个多写入器，同时写入到标准输出和缓冲区
 	multiWriter := io.MultiWriter(os.Stdout, &proxyOutput)
@@ -55,7 +53,7 @@ func runProxyServer2(t *testing.T) {
 
 		if outputLen > 0 {
 			timeoutTestResults = []string{
-				"# HTTP代理服务器测试记录（超时）",
+				"# DOH代理服务器测试记录（超时）",
 				"",
 				"## 测试时间",
 				time.Now().Format("2006-01-02 15:04:05"),
@@ -77,7 +75,7 @@ func runProxyServer2(t *testing.T) {
 		} else {
 			// 即使没有输出，也要记录超时信息
 			timeoutTestResults = []string{
-				"# HTTP代理服务器测试记录（超时）",
+				"# DOH代理服务器测试记录（超时）",
 				"",
 				"## 测试时间",
 				time.Now().Format("2006-01-02 15:04:05"),
@@ -106,6 +104,7 @@ func runProxyServer2(t *testing.T) {
 			log.Printf("写入超时测试记录失败: %v\n", err)
 		}
 		processManager.CleanupAll()
+		processManager.Close()
 		// 强制退出测试
 		t.Fatal("测试超时")
 	})
@@ -113,7 +112,7 @@ func runProxyServer2(t *testing.T) {
 
 	// 测试结果记录
 	var testResults []string
-	testResults = append(testResults, "# HTTP代理服务器测试记录")
+	testResults = append(testResults, "# DOH代理服务器测试记录")
 	testResults = append(testResults, "")
 	testResults = append(testResults, "## 测试时间")
 	testResults = append(testResults, time.Now().Format("2006-01-02 15:04:05"))
@@ -127,7 +126,7 @@ func runProxyServer2(t *testing.T) {
 	// 启动代理服务器
 	testResults = append(testResults, "## 1. 启动代理服务器")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `go run -v ../cmd/main.go`")
+	testResults = append(testResults, "执行命令: `go run -v ../cmd/main.go -dohurl ...`")
 	testResults = append(testResults, "")
 
 	// 先编译代理服务器
@@ -136,14 +135,25 @@ func runProxyServer2(t *testing.T) {
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
 
+	// 记录编译命令
+	processManager.LogCommand(buildCmd, "BUILD")
+
 	if err := buildCmd.Run(); err != nil {
+		processManager.LogCommandResult(buildCmd, err, "")
 		t.Fatalf("编译代理服务器失败: %v", err)
 	}
+	processManager.LogCommandResult(buildCmd, nil, "")
 	testResults = append(testResults, "✅ 代理服务器编译成功")
 	testResults = append(testResults, "")
 
 	// 启动代理服务器进程（使用编译后的可执行文件）
-	cmd := exec.Command("./main.exe", "-dohurl", "https://dns.alidns.com/dns-query", "-dohip", "223.5.5.5", "-dohip", "223.6.6.6", "-dohurl", "https://dns.alidns.com/dns-query", "-dohalpn", "h2", "-dohalpn", "h3")
+	cmd := exec.Command("./main.exe",
+		"-dohurl", "https://dns.alidns.com/dns-query",
+		"-dohip", "223.5.5.5",
+		"-dohip", "223.6.6.6",
+		"-dohurl", "https://dns.alidns.com/dns-query",
+		"-dohalpn", "h2",
+		"-dohalpn", "h3")
 	cmd.Stdout = multiWriter
 	cmd.Stderr = multiWriter
 
@@ -165,6 +175,9 @@ func runProxyServer2(t *testing.T) {
 	processManager.AddProcess(cmd)
 	log.Printf("代理服务器已启动，PID: %d\n", cmd.Process.Pid)
 
+	// 记录启动命令
+	processManager.LogCommand(cmd, "SERVER")
+
 	// 确保进程能正确退出
 	go func() {
 		cmd.Wait()
@@ -181,7 +194,7 @@ func runProxyServer2(t *testing.T) {
 	// 等待服务器启动，增加重试机制
 	serverStarted := false
 	for i := 0; i < 10; i++ {
-		if isProxyServerRunning2() {
+		if isDOHProxyServerRunning() {
 			serverStarted = true
 			break
 		}
@@ -219,6 +232,9 @@ func runProxyServer2(t *testing.T) {
 	curlCmd1.Stdout = &curlOutput1
 	curlCmd1.Stderr = &curlOutput1
 
+	// 记录测试命令
+	processManager.LogCommand(curlCmd1, "TEST")
+
 	// 启动curl进程
 	err1 := curlCmd1.Run()
 	output1 := curlOutput1.Bytes()
@@ -249,6 +265,9 @@ func runProxyServer2(t *testing.T) {
 	}
 	testResults = append(testResults, "")
 
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd1, err1, string(output1))
+
 	// 第二个curl测试（重复测试）
 	testResults = append(testResults, "### 测试2: HTTP代理www.so.com")
 	testResults = append(testResults, "")
@@ -261,6 +280,9 @@ func runProxyServer2(t *testing.T) {
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
 	curlCmd2.Stderr = &curlOutput2
+
+	// 记录测试命令
+	processManager.LogCommand(curlCmd2, "TEST")
 
 	// 启动curl进程
 	err2 := curlCmd2.Run()
@@ -292,6 +314,9 @@ func runProxyServer2(t *testing.T) {
 	}
 	testResults = append(testResults, "")
 
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd2, err2, string(output2))
+
 	// 测试HTTPS代理功能
 	testResults = append(testResults, "### 测试3: HTTPS代理")
 	testResults = append(testResults, "")
@@ -304,6 +329,9 @@ func runProxyServer2(t *testing.T) {
 	var curlOutput3 bytes.Buffer
 	curlCmd3.Stdout = &curlOutput3
 	curlCmd3.Stderr = &curlOutput3
+
+	// 记录测试命令
+	processManager.LogCommand(curlCmd3, "TEST")
 
 	// 启动curl进程
 	err3 := curlCmd3.Run()
@@ -334,6 +362,9 @@ func runProxyServer2(t *testing.T) {
 		testResults = append(testResults, "```")
 	}
 	testResults = append(testResults, "")
+
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd3, err3, string(output3))
 
 	// 记录所有进程PID信息
 	testResults = append(testResults, "### 📋 所有进程PID记录")
@@ -373,6 +404,7 @@ func runProxyServer2(t *testing.T) {
 		testResults = append(testResults, "🛑 正在终止代理服务器进程...")
 		if cmd.Process != nil {
 			log.Printf("正在终止代理服务器进程 PID: %d\n", cmd.Process.Pid)
+
 			if err := cmd.Process.Kill(); err != nil {
 				testResults = append(testResults, fmt.Sprintf("❌ 终止代理服务器进程失败: %v", err))
 				log.Printf("终止代理服务器进程失败: %v\n", err)
@@ -595,8 +627,8 @@ func isPortOccupied2(port int) bool {
 	return false
 }
 
-// isProxyServerRunning2 检查代理服务器是否正在运行
-func isProxyServerRunning2() bool {
+// isDOHProxyServerRunning 检查DOH代理服务器是否正在运行
+func isDOHProxyServerRunning() bool {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -661,17 +693,14 @@ func writeTestResults2(results []string) error {
 	return writer.Flush()
 }
 
-// TestMain3 主测试函数
-func TestMain3(t *testing.T) {
-	// 创建带有30秒超时的上下文（增加超时时间）
+// TestMainDOH 主测试函数
+func TestMainDOH(t *testing.T) {
+	// 创建带有30秒超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// 创建通道来接收测试结果
 	resultChan := make(chan int, 1)
-
-	// 设置全局变量，让测试函数能够访问进程管理器
-	var globalProcessManager *ProcessManager
 
 	// 在goroutine中运行测试
 	go func() {
@@ -701,11 +730,6 @@ func TestMain3(t *testing.T) {
 			// 终止可能的代理服务器进程（在1080端口上）
 			findCmd := exec.Command("netstat", "-ano", "|", "findstr", ":1080")
 			findCmd.Run() // 忽略错误
-		}
-
-		// 清理全局进程管理器中的进程
-		if globalProcessManager != nil {
-			globalProcessManager.CleanupAll()
 		}
 
 		// 记录超时信息到测试记录

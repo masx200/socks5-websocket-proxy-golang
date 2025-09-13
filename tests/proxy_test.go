@@ -20,12 +20,12 @@ import (
 	"time"
 )
 
-
 // runProxyServer1 测试HTTP代理服务器的基本功能
 func runProxyServer1(t *testing.T) {
 	// 创建进程管理器
 	processManager := NewProcessManager()
 	defer processManager.CleanupAll()
+	defer processManager.Close() // 确保日志文件被正确关闭
 
 	// 创建缓冲区来捕获代理服务器的输出
 	var proxyOutput bytes.Buffer
@@ -107,6 +107,7 @@ func runProxyServer1(t *testing.T) {
 			log.Printf("写入超时测试记录失败: %v\n", err)
 		}
 		processManager.CleanupAll()
+		processManager.Close()
 		// 强制退出测试
 		t.Fatal("测试超时")
 	})
@@ -137,9 +138,14 @@ func runProxyServer1(t *testing.T) {
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
 
+	// 记录编译命令
+	processManager.LogCommand(buildCmd, "BUILD")
+
 	if err := buildCmd.Run(); err != nil {
+		processManager.LogCommandResult(buildCmd, err, "")
 		t.Fatalf("编译代理服务器失败: %v", err)
 	}
+	processManager.LogCommandResult(buildCmd, nil, "")
 	testResults = append(testResults, "✅ 代理服务器编译成功")
 	testResults = append(testResults, "")
 
@@ -165,6 +171,9 @@ func runProxyServer1(t *testing.T) {
 	// 将代理服务器进程添加到管理器
 	processManager.AddProcess(cmd)
 	log.Printf("代理服务器已启动，PID: %d\n", cmd.Process.Pid)
+
+	// 记录启动命令
+	processManager.LogCommand(cmd, "SERVER")
 
 	// 确保进程能正确退出
 	go func() {
@@ -220,6 +229,9 @@ func runProxyServer1(t *testing.T) {
 	curlCmd1.Stdout = &curlOutput1
 	curlCmd1.Stderr = &curlOutput1
 
+	// 记录测试命令
+	processManager.LogCommand(curlCmd1, "TEST")
+
 	// 启动curl进程
 	err1 := curlCmd1.Run()
 	output1 := curlOutput1.Bytes()
@@ -250,6 +262,9 @@ func runProxyServer1(t *testing.T) {
 	}
 	testResults = append(testResults, "")
 
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd1, err1, string(output1))
+
 	// 第二个curl测试（重复测试）
 	testResults = append(testResults, "### 测试2: HTTP代理www.so.com")
 	testResults = append(testResults, "")
@@ -262,6 +277,9 @@ func runProxyServer1(t *testing.T) {
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
 	curlCmd2.Stderr = &curlOutput2
+
+	// 记录测试命令
+	processManager.LogCommand(curlCmd2, "TEST")
 
 	// 启动curl进程
 	err2 := curlCmd2.Run()
@@ -293,6 +311,9 @@ func runProxyServer1(t *testing.T) {
 	}
 	testResults = append(testResults, "")
 
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd2, err2, string(output2))
+
 	// 测试HTTPS代理功能
 	testResults = append(testResults, "### 测试3: HTTPS代理")
 	testResults = append(testResults, "")
@@ -305,6 +326,9 @@ func runProxyServer1(t *testing.T) {
 	var curlOutput3 bytes.Buffer
 	curlCmd3.Stdout = &curlOutput3
 	curlCmd3.Stderr = &curlOutput3
+
+	// 记录测试命令
+	processManager.LogCommand(curlCmd3, "TEST")
 
 	// 启动curl进程
 	err3 := curlCmd3.Run()
@@ -335,6 +359,9 @@ func runProxyServer1(t *testing.T) {
 		testResults = append(testResults, "```")
 	}
 	testResults = append(testResults, "")
+
+	// 记录测试结果
+	processManager.LogCommandResult(curlCmd3, err3, string(output3))
 
 	// 记录所有进程PID信息
 	testResults = append(testResults, "### 📋 所有进程PID记录")
@@ -374,6 +401,12 @@ func runProxyServer1(t *testing.T) {
 		testResults = append(testResults, "🛑 正在终止代理服务器进程...")
 		if cmd.Process != nil {
 			log.Printf("正在终止代理服务器进程 PID: %d\n", cmd.Process.Pid)
+
+			// 记录系统管理命令
+			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			processManager.LogCommand(killCmd, "SYSTEM")
+			killCmd.Run()
+
 			if err := cmd.Process.Kill(); err != nil {
 				testResults = append(testResults, fmt.Sprintf("❌ 终止代理服务器进程失败: %v", err))
 				log.Printf("终止代理服务器进程失败: %v\n", err)
@@ -510,6 +543,12 @@ func runProxyServer1(t *testing.T) {
 		// 明确终止代理服务器进程
 		testResults = append(testResults, "🛑 正在终止代理服务器进程...")
 		if cmd.Process != nil {
+
+			// 记录系统管理命令
+			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			processManager.LogCommand(killCmd, "SYSTEM")
+			killCmd.Run()
+
 			if err := cmd.Process.Kill(); err != nil {
 				testResults = append(testResults, fmt.Sprintf("❌ 终止代理服务器进程失败: %v", err))
 			} else {

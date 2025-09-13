@@ -234,7 +234,7 @@ func (s *SOCKS5Server) Authenticate(username, password string) bool {
 
 // SelectUpstreamConnection 选择上游连接
 func (s *SOCKS5Server) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
-	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
+	targetAddr := net.JoinHostPort(targetHost, fmt.Sprint(targetPort))
 
 	if s.selector != nil {
 		log.Printf("[SOCKS5-UPSTREAM] Using upstream selector for target %s\n", targetAddr)

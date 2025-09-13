@@ -203,7 +203,7 @@ func (s *WebSocketServer) Authenticate(username, password string) bool {
 
 // SelectUpstreamConnection 选择上游连接
 func (s *WebSocketServer) SelectUpstreamConnection(targetHost string, targetPort int) (net.Conn, error) {
-	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
+	targetAddr := net.JoinHostPort(targetHost, fmt.Sprint(targetPort))
 
 	// 检查selector是否真正有效（不是nil且包含有效值）
 	if s.selector != nil && !isNilInterface(s.selector) {

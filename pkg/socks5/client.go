@@ -83,7 +83,7 @@ func (c *SOCKS5Client) Connect(targetHost string, targetPort int) error {
 	}
 
 	// 连接到目标主机
-	targetAddr := fmt.Sprintf("%s:%d", targetHost, targetPort)
+	targetAddr := net.JoinHostPort(targetHost, fmt.Sprint(targetPort))
 	conn, err := dialer.Dial("tcp", targetAddr)
 	if err != nil {
 		return fmt.Errorf("failed to connect to target %s: %w", targetAddr, err)
