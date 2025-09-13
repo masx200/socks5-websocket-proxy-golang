@@ -12,12 +12,34 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/masx200/http-proxy-go-server/options"
 	config_module "github.com/masx200/socks5-websocket-proxy-golang/pkg/config"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
 )
 
+type multiString []string
+
+func (m *multiString) String() string {
+	return "[" + strings.Join(*m, ", ") + "]"
+}
+
+func (m *multiString) Set(value string) error {
+	*m = append(*m, value)
+	return nil
+}
 func main() {
+
+
+	var (
+		dohurls  multiString
+		dohips   multiString
+		dohalpns multiString
+	)
+	// 注册可重复参数
+	flag.Var(&dohurls, "dohurl", "DOH URL (可重复),支持http协议和https协议")
+	flag.Var(&dohips, "dohip", "DOH IP (可重复),支持ipv4地址和ipv6地址")
+	flag.Var(&dohalpns, "dohalpn", "DOH alpn (可重复),支持h2协议和h3协议")
 	// 解析命令行参数
 	mode := flag.String("mode", "server", "运行模式: server")
 	protocol := flag.String("protocol", "socks5", "协议类型: socks5 或 websocket")
@@ -34,7 +56,25 @@ func main() {
 	upstreamPassword := flag.String("upstream-password", "", "上游代理密码")
 
 	flag.Parse()
+	
+	var proxyoptions = options.ProxyOptions{}
+	for i, dohurl := range dohurls {
 
+		var dohip string
+		if len(dohips) > i {
+			dohip = dohips[i]
+		} else {
+			dohip = ""
+		}
+		var dohalpn string
+		if len(dohalpns) > i {
+			dohalpn = dohalpns[i]
+		} else {
+			dohalpn = ""
+		}
+
+		proxyoptions = append(proxyoptions, options.ProxyOption{Dohurl: dohurl, Dohip: dohip, Dohalpn: dohalpn})
+	}
 	// 处理 listen-host 和 listen-port 参数
 	if *listenHost != "" || *listenPort != "" {
 		// 如果同时提供了 listen-host 和 listen-port
