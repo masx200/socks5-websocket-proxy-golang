@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitee.com/masx200/go-socks5"
+	"github.com/masx200/http-proxy-go-server/resolver"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/http"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
@@ -25,14 +26,24 @@ type SOCKS5Server struct {
 	wg        sync.WaitGroup
 	authUsers map[string]string
 	selector  interface{}
+	resolver  resolver.NameResolver
 	logger    *log.Logger
 }
 
 // NewSOCKS5Server 创建新的SOCKS5服务端
 func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
+	return NewSOCKS5ServerWithResolver(config, nil)
+}
+
+// NewSOCKS5ServerWithResolver 创建带有解析器的SOCKS5服务端
+func NewSOCKS5ServerWithResolver(config interfaces.ServerConfig, resolver resolver.NameResolver) *SOCKS5Server {
 	var selector interface{}
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
-		selector = upstream.NewDynamicUpstreamSelector(config.UpstreamConfig, upstream.StrategyRoundRobin)
+		if resolver != nil {
+			selector = upstream.NewDynamicUpstreamSelectorWithResolver(config.UpstreamConfig, upstream.StrategyRoundRobin, resolver)
+		} else {
+			selector = upstream.NewDynamicUpstreamSelector(config.UpstreamConfig, upstream.StrategyRoundRobin)
+		}
 	}
 
 	// 创建自定义日志记录器
@@ -42,6 +53,11 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 	socks5Config := &socks5.Config{
 		AuthMethods: []socks5.Authenticator{},
 		Logger:      logger,
+	}
+
+	// 如果有解析器，添加到配置中
+	if resolver != nil {
+		socks5Config.Resolver = resolver
 	}
 
 	// 如果有认证用户，添加用户名密码认证
@@ -64,6 +80,7 @@ func NewSOCKS5Server(config interfaces.ServerConfig) *SOCKS5Server {
 		shutdown:  make(chan struct{}),
 		authUsers: config.AuthUsers,
 		selector:  selector,
+		resolver:  resolver,
 		logger:    logger,
 	}
 
@@ -335,7 +352,12 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
-		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
+		var selector interface{}
+		if s.resolver != nil {
+			selector = upstream.NewDynamicUpstreamSelectorWithResolver(newConfig.UpstreamConfig, upstream.StrategyRoundRobin, s.resolver)
+		} else {
+			selector = upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
+		}
 		s.selector = selector
 		log.Printf("[SOCKS5-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
 	} else {
@@ -361,6 +383,11 @@ func (s *SOCKS5Server) ReloadConfig(newConfig interfaces.ServerConfig) error {
 			return s.SelectUpstreamConnection(host, portInt)
 		},
 		Logger: log.New(os.Stdout, "[SOCKS5-LIB] ", log.LstdFlags|log.Llongfile),
+	}
+
+	// 如果有解析器，添加到配置中
+	if s.resolver != nil {
+		socks5Config.Resolver = s.resolver
 	}
 
 	// 如果有认证用户，添加用户名密码认证

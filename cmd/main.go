@@ -13,9 +13,12 @@ import (
 	"time"
 
 	"github.com/masx200/http-proxy-go-server/options"
+	"github.com/masx200/http-proxy-go-server/resolver"
 	config_module "github.com/masx200/socks5-websocket-proxy-golang/pkg/config"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/proxy"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/socks5"
+	"github.com/masx200/socks5-websocket-proxy-golang/pkg/websocket"
 )
 
 type multiString []string
@@ -29,7 +32,6 @@ func (m *multiString) Set(value string) error {
 	return nil
 }
 func main() {
-
 
 	var (
 		dohurls  multiString
@@ -56,7 +58,7 @@ func main() {
 	upstreamPassword := flag.String("upstream-password", "", "上游代理密码")
 
 	flag.Parse()
-	
+
 	var proxyoptions = options.ProxyOptions{}
 	for i, dohurl := range dohurls {
 
@@ -122,14 +124,14 @@ func main() {
 
 	switch *mode {
 	case "server":
-		startServer(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *configFile, *upstreamType, *upstreamAddress, *upstreamUsername, *upstreamPassword, sigChan)
+		startServer(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *configFile, *upstreamType, *upstreamAddress, *upstreamUsername, *upstreamPassword, proxyoptions, sigChan)
 	default:
 		log.Fatal("不支持的运行模式: ", *mode)
 	}
 }
 
 // startServer 启动服务端
-func startServer(initialProtocol, addr, username, password string, timeout time.Duration, configFile, upstreamType, upstreamAddress, upstreamUsername, upstreamPassword string, sigChan chan os.Signal) {
+func startServer(initialProtocol, addr, username, password string, timeout time.Duration, configFile, upstreamType, upstreamAddress, upstreamUsername, upstreamPassword string, proxyoptions options.ProxyOptions, sigChan chan os.Signal) {
 	var (
 		currentProtocol = initialProtocol
 		server          interfaces.ProxyServer
@@ -177,6 +179,21 @@ func startServer(initialProtocol, addr, username, password string, timeout time.
 			config.UpstreamConfig = []interfaces.UpstreamConfig{upstreamConfig}
 			config.EnableUpstream = true
 			log.Printf("使用命令行参数设置上游配置: 类型=%s, 地址=%s", upstreamType, upstreamAddress)
+		}
+
+		// 如果有DOH参数，创建解析器并使用带有解析器的服务器
+		if len(proxyoptions) > 0 {
+			log.Printf("检测到DOH配置参数，创建自定义DNS解析器")
+			dohResolver := resolver.CreateHostsAndDohResolver(proxyoptions, nil)
+
+			switch strings.ToLower(protocol) {
+			case "socks5":
+				return socks5.NewSOCKS5ServerWithResolver(config, dohResolver), nil
+			case "websocket":
+				return websocket.NewWebSocketServerWithResolver(config, dohResolver), nil
+			default:
+				return proxy.CreateServer(protocol, config)
+			}
 		}
 
 		// 创建服务端

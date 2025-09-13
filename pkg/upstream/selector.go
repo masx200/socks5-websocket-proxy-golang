@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/masx200/http-proxy-go-server/resolver"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 )
 
@@ -28,15 +30,22 @@ type DynamicUpstreamSelector struct {
 	currentIndex int
 	mu           sync.RWMutex
 	healthChecks map[string]bool
+	resolver     resolver.NameResolver
 }
 
 // NewDynamicUpstreamSelector 创建动态上游连接选择器
 func NewDynamicUpstreamSelector(configs []interfaces.UpstreamConfig, strategy SelectionStrategy) *DynamicUpstreamSelector {
+	return NewDynamicUpstreamSelectorWithResolver(configs, strategy, nil)
+}
+
+// NewDynamicUpstreamSelectorWithResolver 创建带有解析器的动态上游连接选择器
+func NewDynamicUpstreamSelectorWithResolver(configs []interfaces.UpstreamConfig, strategy SelectionStrategy, resolver resolver.NameResolver) *DynamicUpstreamSelector {
 	selector := &DynamicUpstreamSelector{
 		configs:      configs,
 		strategy:     strategy,
 		currentIndex: 0,
 		healthChecks: make(map[string]bool),
+		resolver:     resolver,
 	}
 
 	// 初始化健康检查
@@ -177,6 +186,26 @@ func (s *DynamicUpstreamSelector) UpdateHealthStatus(address string, healthy boo
 // createDirectConnection 创建TCP直连
 func (s *DynamicUpstreamSelector) createDirectConnection(targetHost string, targetPort int) (net.Conn, error) {
 	timeout := 30 * time.Second // 默认30秒超时
+
+	// 如果有解析器，尝试使用解析器解析域名
+	if s.resolver != nil {
+		// 尝试使用解析器解析域名
+		if net.ParseIP(targetHost) == nil {
+			// 如果不是IP地址，尝试使用解析器解析
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			_, ip, err := s.resolver.Resolve(ctx, targetHost)
+			if err == nil && ip != nil {
+				// 使用解析到的IP地址
+				targetHost = ip.String()
+				log.Printf("[UPSTREAM] Resolved '%s' to '%s' using custom resolver", targetHost, ip)
+			} else {
+				log.Printf("[UPSTREAM] Custom resolver failed for '%s', falling back to system DNS: %v", targetHost, err)
+			}
+		}
+	}
+
 	return net.DialTimeout("tcp", net.JoinHostPort(targetHost, fmt.Sprint(targetPort)), timeout)
 }
 

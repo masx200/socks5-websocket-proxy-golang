@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/masx200/http-proxy-go-server/resolver"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/upstream"
 )
@@ -25,13 +26,23 @@ type WebSocketServer struct {
 	wg         sync.WaitGroup
 	authUsers  map[string]string
 	selector   interface{}
+	resolver   resolver.NameResolver
 }
 
 // NewWebSocketServer 创建新的WebSocket服务端
 func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
+	return NewWebSocketServerWithResolver(config, nil)
+}
+
+// NewWebSocketServerWithResolver 创建带有解析器的WebSocket服务端
+func NewWebSocketServerWithResolver(config interfaces.ServerConfig, resolver resolver.NameResolver) *WebSocketServer {
 	var selector interface{}
 	if config.EnableUpstream && len(config.UpstreamConfig) > 0 {
-		selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
+		if resolver != nil {
+			selector = upstream.NewDynamicUpstreamSelectorWithResolver(config.UpstreamConfig, upstream.StrategyRoundRobin, resolver)
+		} else {
+			selector = upstream.NewUpstreamSelector(&config.UpstreamConfig[0])
+		}
 	} else {
 		selector = nil
 	}
@@ -51,6 +62,7 @@ func NewWebSocketServer(config interfaces.ServerConfig) *WebSocketServer {
 		},
 		authUsers: config.AuthUsers,
 		selector:  selector,
+		resolver:  resolver,
 	}
 }
 
@@ -258,7 +270,12 @@ func (s *WebSocketServer) ReloadConfig(newConfig interfaces.ServerConfig) error 
 
 	// 更新上游选择器
 	if newConfig.EnableUpstream {
-		selector := upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
+		var selector interface{}
+		if s.resolver != nil {
+			selector = upstream.NewDynamicUpstreamSelectorWithResolver(newConfig.UpstreamConfig, upstream.StrategyRoundRobin, s.resolver)
+		} else {
+			selector = upstream.NewDynamicUpstreamSelector(newConfig.UpstreamConfig, upstream.StrategyRoundRobin)
+		}
 		s.selector = selector
 		log.Printf("[WEBSOCKET-SERVER] Upstream selector updated with %d configurations\n", len(newConfig.UpstreamConfig))
 	} else {
