@@ -18,14 +18,12 @@ import (
 
 func main() {
 	// 解析命令行参数
-	mode := flag.String("mode", "server", "运行模式: server 或 client")
+	mode := flag.String("mode", "server", "运行模式: server")
 	protocol := flag.String("protocol", "socks5", "协议类型: socks5 或 websocket")
 	addr := flag.String("addr", ":1080", "监听地址(服务端)或服务器地址(客户端)")
 	username := flag.String("username", "", "用户名")
 	password := flag.String("password", "", "密码")
 	timeout := flag.Int("timeout", 30, "超时时间(秒)")
-	targetHost := flag.String("host", "", "目标主机(客户端模式)")
-	targetPort := flag.Int("port", 0, "目标端口(客户端模式)")
 	configFile := flag.String("config", "", "配置文件路径")
 	upstreamType := flag.String("upstream-type", "", "上游连接类型: direct, socks5, websocket, http")
 	upstreamAddress := flag.String("upstream-address", "", "上游代理地址")
@@ -44,11 +42,6 @@ func main() {
 	switch *mode {
 	case "server":
 		startServer(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *configFile, *upstreamType, *upstreamAddress, *upstreamUsername, *upstreamPassword, sigChan)
-	case "client":
-		if *targetHost == "" || *targetPort == 0 {
-			log.Fatal("客户端模式需要指定目标主机和端口 (-host 和 -port)")
-		}
-		startClient(*protocol, *addr, *username, *password, time.Duration(*timeout)*time.Second, *targetHost, *targetPort, sigChan)
 	default:
 		log.Fatal("不支持的运行模式: ", *mode)
 	}
@@ -199,77 +192,6 @@ shutdown:
 	}
 
 	log.Println("服务端已停止")
-}
-
-// startClient 启动客户端
-func startClient(protocol, serverAddr, username, password string, timeout time.Duration, targetHost string, targetPort int, sigChan chan os.Signal) {
-	log.Printf("启动%s客户端，服务器地址: %s，目标: %s:%d\n", protocol, serverAddr, targetHost, targetPort)
-
-	// 创建客户端配置
-	config := proxy.ClientConfig{
-		Username:   username,
-		Password:   password,
-		ServerAddr: serverAddr,
-		Protocol:   protocol,
-		Timeout:    timeout,
-	}
-
-	// 创建客户端
-	client, err := proxy.CreateClient(protocol, config)
-	if err != nil {
-		log.Fatal("创建客户端失败:", err)
-	}
-
-	// 连接到目标主机
-	if err := client.Connect(targetHost, targetPort); err != nil {
-		log.Fatal("连接目标主机失败:", err)
-	}
-
-	// 进行认证
-	if username != "" && password != "" {
-		log.Println("正在认证...", username, password)
-		// if err := client.Authenticate(username, password); err != nil {
-		// 	log.Fatal("认证失败:", err)
-		// }
-	}
-
-	log.Printf("已连接到目标主机 %s:%d\n", targetHost, targetPort)
-
-	// 创建一个模拟的连接来测试数据转发
-	// 在实际应用中，这里应该是一个真实的网络连接
-	// 这里只是演示，实际使用时需要根据具体需求调整
-	log.Println("客户端已启动，按Ctrl+C停止")
-
-	// 设置连接关闭回调
-	connectionClosed := make(chan bool, 1)
-	err = client.SetConnectionClosedCallback(func() {
-		log.Println("连接已关闭，正在退出程序...")
-		connectionClosed <- true
-	})
-	if err != nil {
-		log.Printf("设置连接关闭回调失败: %v\n", err)
-	}
-
-	// 等待停止信号或连接关闭
-	var connectionWasClosed bool
-	select {
-	case <-sigChan:
-		log.Println("正在停止客户端...")
-	case <-connectionClosed:
-		log.Println("连接已关闭，正在退出程序...")
-		connectionWasClosed = true
-	}
-
-	// 关闭客户端
-	if err := client.Close(); err != nil {
-		log.Printf("关闭客户端时出错: %v\n", err)
-	}
-
-	log.Println("客户端已停止")
-	// 如果是连接关闭导致的退出，直接退出程序
-	if connectionWasClosed {
-		os.Exit(1)
-	}
 }
 
 // loadServerConfig 从配置文件加载服务端配置

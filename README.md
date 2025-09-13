@@ -94,17 +94,6 @@ go build -o proxy-server.exe cmd/main.go
 ./proxy-server.exe -mode server -config config/server-config.json
 ```
 
-### 2. 客户端模式
-
-```bash
-# 连接到目标主机
-./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
-```
-
-**详细使用指南**: 请查看 [客户端模式使用指南](CLIENT_MODE_GUIDE.md)
-获取更详细的客户端模式使用说明，包括 SOCKS5 和 WebSocket
-协议的具体配置方法和实际应用场景。
-
 **开发规范**: 请查看 [项目开发规范](提示词.md)
 了解项目的架构设计、技术实现规范和核心功能模块说明。
 
@@ -117,12 +106,10 @@ go build -o proxy-server.exe cmd/main.go
 
 | 参数                 | 类型   | 默认值     | 说明                                                                              |
 | -------------------- | ------ | ---------- | --------------------------------------------------------------------------------- |
-| `-addr`              | string | `":1080"`  | 监听地址(服务端)或服务器地址(客户端)                                              |
+| `-addr`              | string | `":1080"`  | 监听地址                                                                          |
 | `-config`            | string | `""`       | 配置文件路径                                                                      |
-| `-host`              | string | `""`       | 目标主机(客户端模式)                                                              |
-| `-mode`              | string | `"server"` | 运行模式: server 或 client                                                        |
+| `-mode`              | string | `"server"` | 运行模式: server                                                                  |
 | `-password`          | string | `""`       | 密码                                                                              |
-| `-port`              | int    | `0`        | 目标端口(客户端模式)                                                              |
 | `-protocol`          | string | `"socks5"` | 协议类型: socks5 或 websocket                                                     |
 | `-timeout`           | int    | `30`       | 超时时间(秒)                                                                      |
 | `-upstream-address`  | string | `""`       | 上游代理地址，支持协议前缀: ws://, socks5://, http://, tcp://, tls://, socks5s:// |
@@ -147,16 +134,6 @@ go build -o proxy-server.exe cmd/main.go
 
 # 使用配置文件
 ./proxy-server.exe -mode server -config config/server-config.json
-```
-
-#### 客户端模式示例
-
-```bash
-# 基本客户端连接
-./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 80
-
-# 带超时设置的客户端
-./proxy-server.exe -mode client -protocol socks5 -addr tcp://proxy-server.com:1080 -username admin -password password123 -host target.com -port 443 -timeout 60
 ```
 
 ## 配置说明
