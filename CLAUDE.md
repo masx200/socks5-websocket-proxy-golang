@@ -44,12 +44,13 @@ go mod tidy && go fmt ./... && go test ./... -v
 - **`pkg/upstream/`** - Dynamic upstream connection selection with multiple
   strategies
 - **`pkg/config/`** - Configuration management with file watching and hot reload
-- **`pkg/proxy/`** - Factory pattern for protocol-specific instance creation
+- **`pkg/proxy/`** - Factory pattern for protocol-specific instance creation in
+  `pkg/proxy/interfaces.go`
 
 ### Key Patterns
 
 - **Factory Pattern**: Protocol-specific client/server creation in
-  `pkg/proxy/factory.go`
+  `pkg/proxy/interfaces.go`
 - **Strategy Pattern**: Upstream connection selection (round-robin, random,
   weighted, failover)
 - **Observer Pattern**: Configuration hot reload with event notifications
@@ -114,26 +115,55 @@ The system supports various address formats:
 - Test real network connections and concurrent access
 - Use test coverage analysis: `go test -cover ./...`
 
-### Common Development Tasks
+## Development Guidelines
 
-**Adding New Protocol Support:**
+### DNS Resolution
 
-1. Create new package under `pkg/`
-2. Implement `ClientInterface` and `ServerInterface` from `pkg/interfaces/`
-3. Register in `pkg/proxy/factory.go`
-4. Add address format parsing
+The system includes custom DNS resolution support:
 
-**Adding Upstream Strategy:**
+- DNS-over-HTTPS (DoH) support via `-dohurl` parameter
+- Multiple DoH server configuration
+- Support for custom APLN protocols
+- Custom resolver in `pkg/resolver/` package
 
-1. Implement `UpstreamSelector` interface in `pkg/upstream/`
-2. Add strategy type to `pkg/upstream/strategies.go`
-3. Update configuration schema
+### Configuration Management
 
-**Configuration Changes:**
+Configuration can be provided through:
 
-1. Modify struct definitions in `pkg/config/config.go`
-2. Update validation in `pkg/config/validate.go`
-3. Add examples to configuration files
+- Command line parameters for quick setup
+- JSON configuration files for complex scenarios (`config/server-config.json`)
+- Hot reload support for runtime changes using file watching
+
+## Protocol Support
+
+### SOCKS5 Implementation
+
+- Full RFC 1928/1929 compliance
+- Username/password authentication
+- IPv4 and domain address support
+- Connection handling in `pkg/socks5/server.go:95`
+
+### WebSocket Support
+
+- Custom header authentication
+- Protocol conversion from SOCKS5
+- Real-time data forwarding
+
+### HTTP Proxy
+
+- CONNECT method support
+- Address format: `http://proxy-server:port`
+
+## Address Format Support
+
+The system supports various address formats:
+
+- `tcp://host:port` - Standard TCP
+- `tls://host:port` - TCP with TLS
+- `ws://host:port` - WebSocket
+- `wss://host:port` - WebSocket with TLS
+- `socks5://host:port` - SOCKS5 proxy
+- `http://host:port` - HTTP proxy
 
 ## Important Files
 
