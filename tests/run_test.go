@@ -12,7 +12,7 @@ func TestMain(m *testing.M) {
 
 	exitCode := m.Run()
 	log.Println("测试结束")
-	
+
 	os.Exit(exitCode)
 }
 func TestRun(t *testing.T) {
