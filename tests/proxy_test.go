@@ -11,7 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
+
+	// "os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -122,8 +123,8 @@ func runProxyServer1(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 检查端口是否被占用
-	if isPortOccupied1(1080) {
-		t.Fatal("端口1080已被占用，请先停止占用该端口的进程")
+	if isPortOccupied1(10800) {
+		t.Fatal("端口10800已被占用，请先停止占用该端口的进程")
 	}
 
 	// 启动代理服务器
@@ -134,7 +135,7 @@ func runProxyServer1(t *testing.T) {
 
 	// 先编译代理服务器
 	testResults = append(testResults, "编译代理服务器...")
-	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
+	buildCmd := processManager.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
 
@@ -150,7 +151,7 @@ func runProxyServer1(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 启动代理服务器进程（使用编译后的可执行文件）
-	cmd := exec.Command("./main.exe")
+	cmd := processManager.Command("./main.exe", "-listen-port", "10800")
 	cmd.Stdout = multiWriter
 	cmd.Stderr = multiWriter
 
@@ -219,11 +220,11 @@ func runProxyServer1(t *testing.T) {
 	// 第一个curl测试
 	testResults = append(testResults, "### 测试1: 基本HTTP代理")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I http://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "执行命令: `curl -v -I http://www.baidu.com -x socks5://localhost:10800`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd1 := exec.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:1080")
+	curlCmd1 := processManager.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput1 bytes.Buffer
 	curlCmd1.Stdout = &curlOutput1
@@ -268,11 +269,11 @@ func runProxyServer1(t *testing.T) {
 	// 第二个curl测试（重复测试）
 	testResults = append(testResults, "### 测试2: HTTP代理www.so.com")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I http://www.so.com -x socks5://localhost:1080  -L`")
+	testResults = append(testResults, "执行命令: `curl -v -I http://www.so.com -x socks5://localhost:10800  -L`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd2 := exec.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:1080")
+	curlCmd2 := processManager.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
@@ -317,11 +318,11 @@ func runProxyServer1(t *testing.T) {
 	// 测试HTTPS代理功能
 	testResults = append(testResults, "### 测试3: HTTPS代理")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I https://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "执行命令: `curl -v -I https://www.baidu.com -x socks5://localhost:10800`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd3 := exec.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:1080")
+	curlCmd3 := processManager.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput3 bytes.Buffer
 	curlCmd3.Stdout = &curlOutput3
@@ -403,7 +404,7 @@ func runProxyServer1(t *testing.T) {
 			log.Printf("正在终止代理服务器进程 PID: %d\n", cmd.Process.Pid)
 
 			// 记录系统管理命令
-			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			killCmd := processManager.Command("taskkill", "/F", "/IM", "go.exe")
 			processManager.LogCommand(killCmd, "SYSTEM")
 			killCmd.Run()
 
@@ -521,10 +522,10 @@ func runProxyServer1(t *testing.T) {
 		testResults = append(testResults, "")
 
 		// 验证端口是否已释放
-		if !isPortOccupied1(1080) {
-			testResults = append(testResults, "✅ 端口1080已成功释放")
+		if !isPortOccupied1(10800) {
+			testResults = append(testResults, "✅ 端口10800已成功释放")
 		} else {
-			testResults = append(testResults, "❌ 端口1080仍被占用")
+			testResults = append(testResults, "❌ 端口10800仍被占用")
 		}
 
 		// 重新写入测试记录
@@ -545,7 +546,7 @@ func runProxyServer1(t *testing.T) {
 		if cmd.Process != nil {
 
 			// 记录系统管理命令
-			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			killCmd := processManager.Command("taskkill", "/F", "/IM", "go.exe")
 			processManager.LogCommand(killCmd, "SYSTEM")
 			killCmd.Run()
 
@@ -648,7 +649,7 @@ func isProxyServerRunning() bool {
 	}
 
 	// 设置代理
-	proxyURL, err := url.Parse("socks5://localhost:1080")
+	proxyURL, err := url.Parse("socks5://localhost:10800")
 	if err != nil {
 		return false
 	}
@@ -711,8 +712,13 @@ func RunMainDEFAULT(t *testing.T) {
 	resultChan := make(chan int, 1)
 
 	// 设置全局变量，让测试函数能够访问进程管理器
-	var globalProcessManager *ProcessManager
+	var processManager *ProcessManager = NewProcessManager()
+	defer func() {
 
+		// 清理所有进程
+		processManager.CleanupAll()
+		processManager.Close()
+	}()
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
@@ -735,17 +741,17 @@ func RunMainDEFAULT(t *testing.T) {
 		// 在Windows上强制终止所有go进程和可能的子进程
 		if runtime.GOOS == "windows" {
 			// 使用taskkill终止所有go进程
-			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			killCmd := processManager.Command("taskkill", "/F", "/IM", "go.exe")
 			killCmd.Run() // 忽略错误
 
-			// 终止可能的代理服务器进程（在1080端口上）
-			findCmd := exec.Command("netstat", "-ano", "|", "findstr", ":1080")
+			// 终止可能的代理服务器进程（在10800端口上）
+			findCmd := processManager.Command("netstat", "-ano", "|", "findstr", ":10800")
 			findCmd.Run() // 忽略错误
 		}
 
 		// 清理全局进程管理器中的进程
-		if globalProcessManager != nil {
-			globalProcessManager.CleanupAll()
+		if processManager != nil {
+			processManager.CleanupAll()
 		}
 
 		// 记录超时信息到测试记录

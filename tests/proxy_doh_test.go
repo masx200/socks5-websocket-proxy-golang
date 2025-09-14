@@ -11,7 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
+
+	// "os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -131,7 +132,7 @@ func runProxyServer2(t *testing.T) {
 
 	// 先编译代理服务器
 	testResults = append(testResults, "编译代理服务器...")
-	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
+	buildCmd := processManager.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
 	processManager.AddProcess(buildCmd)
@@ -147,7 +148,9 @@ func runProxyServer2(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 启动代理服务器进程（使用编译后的可执行文件）
-	cmd := exec.Command("./main.exe",
+	cmd := processManager.Command("./main.exe",
+
+		"-listen-port", "10800",
 		"-dohurl", "https://dns.alidns.com/dns-query",
 		"-dohip", "223.5.5.5",
 		"-dohip", "223.6.6.6",
@@ -226,7 +229,7 @@ func runProxyServer2(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd1 := exec.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:10800")
+	curlCmd1 := processManager.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput1 bytes.Buffer
 	curlCmd1.Stdout = &curlOutput1
@@ -275,7 +278,7 @@ func runProxyServer2(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd2 := exec.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:10800")
+	curlCmd2 := processManager.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
@@ -324,7 +327,7 @@ func runProxyServer2(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd3 := exec.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:10800")
+	curlCmd3 := processManager.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput3 bytes.Buffer
 	curlCmd3.Stdout = &curlOutput3
@@ -732,13 +735,13 @@ func RunMainDOH(t *testing.T) {
 		// 在Windows上强制终止所有go进程和可能的子进程
 		if runtime.GOOS == "windows" {
 			// 使用taskkill终止所有go进程
-			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
+			killCmd := processManager.Command("taskkill", "/F", "/IM", "go.exe")
 			killCmd.Run() // 忽略错误
 
 			processManager.AddProcess(killCmd)
 
 			// 终止可能的代理服务器进程（在10800端口上）
-			findCmd := exec.Command("netstat", "-ano", "|", "findstr", ":10800")
+			findCmd := processManager.Command("netstat", "-ano", "|", "findstr", ":10800")
 			findCmd.Run() // 忽略错误
 			processManager.AddProcess(findCmd)
 		}
