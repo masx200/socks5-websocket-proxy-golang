@@ -461,3 +461,9 @@ A high-performance SOCKS5 proxy server with WebSocket support written in Go
 ```bash
 curl -v  -I   https://www.baidu.com  -x socks5://localhost:9999
 ```
+
+## 测试项目
+
+```bash
+go test -v -p 1 -parallel 1 ./...
+```

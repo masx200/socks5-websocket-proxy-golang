@@ -119,8 +119,8 @@ func runProxyServer2(t *testing.T) {
 	testResults = append(testResults, "")
 
 	// 检查端口是否被占用
-	if isPortOccupied2(1080) {
-		t.Fatal("端口1080已被占用，请先停止占用该端口的进程")
+	if isPortOccupied2(10800) {
+		t.Fatal("端口10800已被占用，请先停止占用该端口的进程")
 	}
 
 	// 启动代理服务器
@@ -134,7 +134,7 @@ func runProxyServer2(t *testing.T) {
 	buildCmd := exec.Command("go", "build", "-o", "main.exe", "../cmd/main.go")
 	buildCmd.Stdout = multiWriter
 	buildCmd.Stderr = multiWriter
-
+	processManager.AddProcess(buildCmd)
 	// 记录编译命令
 	processManager.LogCommand(buildCmd, "BUILD")
 
@@ -222,11 +222,11 @@ func runProxyServer2(t *testing.T) {
 	// 第一个curl测试
 	testResults = append(testResults, "### 测试1: 基本HTTP代理")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I http://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "执行命令: `curl -v -I http://www.baidu.com -x socks5://localhost:10800`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd1 := exec.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:1080")
+	curlCmd1 := exec.Command("curl", "-v", "-I", "http://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput1 bytes.Buffer
 	curlCmd1.Stdout = &curlOutput1
@@ -271,11 +271,11 @@ func runProxyServer2(t *testing.T) {
 	// 第二个curl测试（重复测试）
 	testResults = append(testResults, "### 测试2: HTTP代理www.so.com")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I http://www.so.com -x socks5://localhost:1080  -L`")
+	testResults = append(testResults, "执行命令: `curl -v -I http://www.so.com -x socks5://localhost:10800  -L`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd2 := exec.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:1080")
+	curlCmd2 := exec.Command("curl", "-v", "-I", "-L", "http://www.so.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput2 bytes.Buffer
 	curlCmd2.Stdout = &curlOutput2
@@ -320,11 +320,11 @@ func runProxyServer2(t *testing.T) {
 	// 测试HTTPS代理功能
 	testResults = append(testResults, "### 测试3: HTTPS代理")
 	testResults = append(testResults, "")
-	testResults = append(testResults, "执行命令: `curl -v -I https://www.baidu.com -x socks5://localhost:1080`")
+	testResults = append(testResults, "执行命令: `curl -v -I https://www.baidu.com -x socks5://localhost:10800`")
 	testResults = append(testResults, "")
 
 	// 创建curl进程
-	curlCmd3 := exec.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:1080")
+	curlCmd3 := exec.Command("curl", "-v", "-I", "https://www.baidu.com", "-x", "socks5://localhost:10800")
 	// 创建缓冲区来捕获curl输出
 	var curlOutput3 bytes.Buffer
 	curlCmd3.Stdout = &curlOutput3
@@ -519,10 +519,10 @@ func runProxyServer2(t *testing.T) {
 		testResults = append(testResults, "")
 
 		// 验证端口是否已释放
-		if !isPortOccupied2(1080) {
-			testResults = append(testResults, "✅ 端口1080已成功释放")
+		if !isPortOccupied2(10800) {
+			testResults = append(testResults, "✅ 端口10800已成功释放")
 		} else {
-			testResults = append(testResults, "❌ 端口1080仍被占用")
+			testResults = append(testResults, "❌ 端口10800仍被占用")
 		}
 
 		// 重新写入测试记录
@@ -640,7 +640,7 @@ func isDOHProxyServerRunning() bool {
 	}
 
 	// 设置代理
-	proxyURL, err := url.Parse("socks5://localhost:1080")
+	proxyURL, err := url.Parse("socks5://localhost:10800")
 	if err != nil {
 		return false
 	}
@@ -694,7 +694,15 @@ func WriteTestResultsDOH(results []string) error {
 }
 
 // TestMainDOH 主测试函数
-func TestMainDOH(t *testing.T) {
+func RunMainDOH(t *testing.T) {
+
+	var processManager *ProcessManager = NewProcessManager()
+	defer func() {
+
+		// 清理所有进程
+		processManager.CleanupAll()
+		processManager.Close()
+	}()
 	// 创建带有30秒超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -727,9 +735,12 @@ func TestMainDOH(t *testing.T) {
 			killCmd := exec.Command("taskkill", "/F", "/IM", "go.exe")
 			killCmd.Run() // 忽略错误
 
-			// 终止可能的代理服务器进程（在1080端口上）
-			findCmd := exec.Command("netstat", "-ano", "|", "findstr", ":1080")
+			processManager.AddProcess(killCmd)
+
+			// 终止可能的代理服务器进程（在10800端口上）
+			findCmd := exec.Command("netstat", "-ano", "|", "findstr", ":10800")
 			findCmd.Run() // 忽略错误
+			processManager.AddProcess(findCmd)
 		}
 
 		// 记录超时信息到测试记录

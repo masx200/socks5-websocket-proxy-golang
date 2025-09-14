@@ -105,8 +105,6 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 	log.Println("执行命令: `./socks5-websocket-proxy-golang.exe -mode server -protocol websocket -addr :38800`")
 	log.Println("启动WebSocket服务器...")
 
-
-
 	websocketCmd := exec.Command("./socks5-websocket-proxy-golang.exe", "-mode", "server", "-protocol", "websocket", "-addr", ":38800")
 	websocketCmd.Stdout = websocketWriter
 	websocketCmd.Stderr = websocketWriter
@@ -528,7 +526,7 @@ func WriteTestResultsWebSocket(results []string) error {
 }
 
 // TestMain2 主测试函数
-func TestMainWebSocket(t *testing.T) {
+func RunMainWebSocket(t *testing.T) {
 	// 创建带有35秒超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
 	defer cancel()

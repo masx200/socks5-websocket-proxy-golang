@@ -702,7 +702,7 @@ func WriteTestResultsDEFAULT(results []string) error {
 }
 
 // TestMainDEFAULT 主测试函数
-func TestMainDEFAULT(t *testing.T) {
+func RunMainDEFAULT(t *testing.T) {
 	// 创建带有30秒超时的上下文（增加超时时间）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
