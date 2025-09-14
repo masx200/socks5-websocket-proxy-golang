@@ -160,31 +160,31 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 	log.Println("执行命令: `./main.exe  -port 10800 -upstream-type websocket -upstream-address ws://localhost:38800`")
 	log.Println("启动socks5服务器...")
 
-	httpCmd := exec.Command("./main.exe", "-listen-port", "10800",
+	socks5Cmd := exec.Command("./main.exe", "-listen-port", "10800",
 		"-upstream-type", "websocket", "-upstream-address", "ws://localhost:38800")
-	httpCmd.Stdout = httpWriter
-	httpCmd.Stderr = httpWriter
+	socks5Cmd.Stdout = httpWriter
+	socks5Cmd.Stderr = httpWriter
 
 	// 记录命令执行
-	processManager.LogCommand(httpCmd, "HTTP")
+	processManager.LogCommand(socks5Cmd, "HTTP")
 
 	// 设置进程属性
 	if runtime.GOOS == "windows" {
-		httpCmd.SysProcAttr = &syscall.SysProcAttr{
+		socks5Cmd.SysProcAttr = &syscall.SysProcAttr{
 			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 		}
 	}
 
-	err = httpCmd.Start()
+	err = socks5Cmd.Start()
 	if err != nil {
-		processManager.LogCommandResult(httpCmd, err, "")
+		processManager.LogCommandResult(socks5Cmd, err, "")
 		t.Fatalf("启动socks5服务器失败: %v", err)
 	}
-	processManager.LogCommandResult(httpCmd, nil, "")
+	processManager.LogCommandResult(socks5Cmd, nil, "")
 
-	processManager.AddProcess(httpCmd)
-	log.Printf("http服务器已启动，PID: %d\n", httpCmd.Process.Pid)
-	testResults = append(testResults, fmt.Sprintf("📋 http服务器进程PID: %d", httpCmd.Process.Pid))
+	processManager.AddProcess(socks5Cmd)
+	log.Printf("http服务器已启动，PID: %d\n", socks5Cmd.Process.Pid)
+	testResults = append(testResults, fmt.Sprintf("📋 http服务器进程PID: %d", socks5Cmd.Process.Pid))
 	testResults = append(testResults, "")
 
 	// 等待http服务器启动
@@ -345,11 +345,11 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 
 		// 终止http服务器
 		testResults = append(testResults, "🛑 正在终止http服务器进程...")
-		if httpCmd.Process != nil {
-			if err := httpCmd.Process.Kill(); err != nil {
+		if socks5Cmd.Process != nil {
+			if err := socks5Cmd.Process.Kill(); err != nil {
 				testResults = append(testResults, fmt.Sprintf("❌ 终止http服务器进程失败: %v", err))
 			} else {
-				httpCmd.Wait()
+				socks5Cmd.Wait()
 				testResults = append(testResults, "✅ http服务器进程已终止")
 			}
 		}
@@ -426,9 +426,9 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 		}
 
 		// 终止http服务器
-		if httpCmd.Process != nil {
-			httpCmd.Process.Kill()
-			httpCmd.Wait()
+		if socks5Cmd.Process != nil {
+			socks5Cmd.Process.Kill()
+			socks5Cmd.Wait()
 		}
 
 		// 清理所有进程
