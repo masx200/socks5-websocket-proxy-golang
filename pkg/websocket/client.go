@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
+	"github.com/masx200/socks5-websocket-proxy-golang/utils"
 )
 
 func init() {
@@ -35,6 +36,14 @@ type WebSocketClient struct {
 
 // DialContext implements interfaces.ProxyClient.
 func (c *WebSocketClient) DialContext(ctx context.Context, network string, addr string) (net.Conn, error) {
+	var host, _, err = net.SplitHostPort(addr)
+					if err != nil {
+						return nil, err
+					}
+					if utils.IsLoopbackIP(host) {
+						var dialer = &net.Dialer{}
+						return dialer.DialContext(ctx, network, addr)
+					}
 	// 解析目标地址
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {

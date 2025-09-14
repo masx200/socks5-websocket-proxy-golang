@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/masx200/socks5-websocket-proxy-golang/pkg/interfaces"
+	"github.com/masx200/socks5-websocket-proxy-golang/utils"
 )
 
 // HttpProxyAdapter 适配HTTP代理客户端到系统接口
@@ -61,6 +62,15 @@ func (a *HttpProxyAdapter) NetConn() net.Conn {
 
 // DialContext 实现DialContext方法
 func (a *HttpProxyAdapter) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+
+	var host, _, err = net.SplitHostPort(addr)
+					if err != nil {
+						return nil, err
+					}
+					if utils.IsLoopbackIP(host) {
+						var dialer = &net.Dialer{}
+						return dialer.DialContext(ctx, network, addr)
+					}
 	return a.client.DialContext(ctx, network, addr)
 }
 
