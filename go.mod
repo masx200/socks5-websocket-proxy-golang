@@ -2,6 +2,8 @@ module github.com/masx200/socks5-websocket-proxy-golang
 
 go 1.24.1
 
+replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.44.0
+
 require (
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/net v0.44.0
@@ -9,7 +11,7 @@ require (
 
 require (
 	gitee.com/masx200/go-socks5 v0.0.0-20250912150125-12b401692290
-	github.com/masx200/http-proxy-go-server v0.0.0-20250913132722-65c3da2903df
+	github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5
 )
 
 require (
@@ -18,7 +20,7 @@ require (
 	github.com/fanjindong/go-cache v0.0.6 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20250903194437-c28834ac2320 // indirect
-	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5 // indirect
+	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913163641-e00608f1326e // indirect
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect

@@ -19,12 +19,14 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/masx200/http-proxy-go-server/tests"
 )
 
 // runProxyServer2 测试DOH (DNS over HTTPS) 代理服务器功能
-func runProxyServer2(t *testing.T) {
+func runProxyServer2(t *testing.T, logfilename string) {
 	// 创建进程管理器
-	processManager := NewProcessManager()
+	processManager := tests.NewProcessManager(logfilename)
 	defer processManager.CleanupAll()
 	defer processManager.Close() // 确保日志文件被正确关闭
 
@@ -665,8 +667,8 @@ func isDOHProxyServerRunning() bool {
 
 // WriteTestResultsDOH 写入测试结果到文件
 func WriteTestResultsDOH(results []string) error {
-	// 写入到测试记录.md
-	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	// 写入到测试记录.log
+	file, err := os.OpenFile("测试记录.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
@@ -697,9 +699,9 @@ func WriteTestResultsDOH(results []string) error {
 }
 
 // TestMainDOH 主测试函数
-func RunMainDOH(t *testing.T) {
+func RunMainDOH(t *testing.T, logfilename string) {
 
-	var processManager *ProcessManager = NewProcessManager()
+	var processManager *tests.ProcessManager = tests.NewProcessManager(logfilename)
 	defer func() {
 
 		// 清理所有进程
@@ -716,7 +718,7 @@ func RunMainDOH(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		runProxyServer2(t)
+		runProxyServer2(t, logfilename)
 		resultChan <- 0
 	}()
 

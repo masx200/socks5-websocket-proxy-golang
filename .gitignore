@@ -4,3 +4,4 @@ proxy-server
 .codebuddy
 .claude
 .kilocode
+*.log

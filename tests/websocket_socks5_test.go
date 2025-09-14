@@ -11,19 +11,20 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
 	// "os/exec"
 	"runtime"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/masx200/http-proxy-go-server/tests"
 )
 
 // runWebSocketsocks5Proxy 测试WebSocket和socks5级联代理服务器
-func runWebSocketsocks5Proxy(t *testing.T) {
+func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 
-	var processManager *ProcessManager = NewProcessManager()
+	var processManager *tests.ProcessManager = tests.NewProcessManager(logfilename)
 	defer func() {
 
 		// 清理所有进程
@@ -498,8 +499,8 @@ func IsPortOccupied2(port int) bool {
 
 // WriteTestResultsWebSocket 写入测试结果到文件
 func WriteTestResultsWebSocket(results []string) error {
-	// 写入到测试记录.md
-	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	// 写入到测试记录.log
+	file, err := os.OpenFile("测试记录.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
@@ -530,7 +531,7 @@ func WriteTestResultsWebSocket(results []string) error {
 }
 
 // TestMain2 主测试函数
-func RunMainWebSocket(t *testing.T) {
+func RunMainWebSocket(t *testing.T, logfilename string) {
 	// 创建带有35秒超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
 	defer cancel()
@@ -539,7 +540,7 @@ func RunMainWebSocket(t *testing.T) {
 	resultChan := make(chan bool, 1)
 
 	// 创建进程管理器
-	var processManager *ProcessManager = NewProcessManager()
+	var processManager *tests.ProcessManager = tests.NewProcessManager(logfilename)
 	defer func() {
 
 		// 清理所有进程
@@ -549,7 +550,7 @@ func RunMainWebSocket(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试，并传递进程管理器
-		runWebSocketsocks5Proxy(t)
+		runWebSocketsocks5Proxy(t, logfilename)
 		resultChan <- true
 	}()
 

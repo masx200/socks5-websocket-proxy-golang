@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
 	// "os/exec"
 	"runtime"
 	"strings"
@@ -19,12 +18,14 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/masx200/http-proxy-go-server/tests"
 )
 
 // runProxyServer1 测试HTTP代理服务器的基本功能
-func runProxyServer1(t *testing.T) {
+func runProxyServer1(t *testing.T, logfilename string) {
 	// 创建进程管理器
-	processManager := NewProcessManager()
+	processManager := tests.NewProcessManager(logfilename)
 	defer processManager.CleanupAll()
 	defer processManager.Close() // 确保日志文件被正确关闭
 
@@ -671,8 +672,8 @@ func isProxyServerRunning() bool {
 
 // WriteTestResultsDEFAULT 写入测试结果到文件
 func WriteTestResultsDEFAULT(results []string) error {
-	// 写入到测试记录.md
-	file, err := os.OpenFile("测试记录.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	// 写入到测试记录.log
+	file, err := os.OpenFile("测试记录.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
@@ -703,7 +704,7 @@ func WriteTestResultsDEFAULT(results []string) error {
 }
 
 // TestMainDEFAULT 主测试函数
-func RunMainDEFAULT(t *testing.T) {
+func RunMainDEFAULT(t *testing.T,logfilename string) {
 	// 创建带有30秒超时的上下文（增加超时时间）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -712,7 +713,7 @@ func RunMainDEFAULT(t *testing.T) {
 	resultChan := make(chan int, 1)
 
 	// 设置全局变量，让测试函数能够访问进程管理器
-	var processManager *ProcessManager = NewProcessManager()
+	var processManager *tests.ProcessManager= tests.NewProcessManager(logfilename)
 	defer func() {
 
 		// 清理所有进程
@@ -722,7 +723,7 @@ func RunMainDEFAULT(t *testing.T) {
 	// 在goroutine中运行测试
 	go func() {
 		// 运行测试
-		runProxyServer1(t)
+		runProxyServer1(t,logfilename)
 		resultChan <- 0
 	}()
 

@@ -22,8 +22,12 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/masx200/http-proxy-go-server v0.0.0-20250913132722-65c3da2903df h1:MWcl94nF/WUaBTmXvWDJTlUtYkEeRcVXHV1ytOHyuFA=
 github.com/masx200/http-proxy-go-server v0.0.0-20250913132722-65c3da2903df/go.mod h1:pBY2ila89A/VLxUKtYZSn9EvYeVpA5uE+yd5UgMT5QM=
+github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5 h1:/7MywfwMHOHEh/mFizd6kDiR9lOIexAcoR7KLpKfdv0=
+github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5/go.mod h1:nmalxvhCcA6qrfdoa/x4lM6oMO2Zi4cbjr20aVoWrAk=
 github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5 h1:2srQYTnSqGDj71FWB+d6ZbJsv5SFnWcoa4rW+NmlaJ0=
 github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5/go.mod h1:WhBu9WnG6480hixxNWLx237KHiDrDOn7U+Ioo6Cq1b4=
+github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913163641-e00608f1326e h1:4XfI423+y9rYtP5zyaBUHRLEauEz5XY2+Qx4m6PJOYU=
+github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913163641-e00608f1326e/go.mod h1:WhBu9WnG6480hixxNWLx237KHiDrDOn7U+Ioo6Cq1b4=
 github.com/miekg/dns v1.1.68 h1:jsSRkNozw7G/mnmXULynzMNIsgY2dHC8LO6U6Ij2JEA=
 github.com/miekg/dns v1.1.68/go.mod h1:fujopn7TB3Pu3JM69XaawiU0wqjpL9/8xGop5UrTPps=
 github.com/onsi/ginkgo/v2 v2.25.3 h1:Ty8+Yi/ayDAGtk4XxmmfUy4GabvM+MegeB4cDLRi6nw=
