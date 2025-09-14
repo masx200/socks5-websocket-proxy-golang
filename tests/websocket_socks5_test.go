@@ -40,8 +40,8 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	socks5Writer := io.MultiWriter(os.Stdout, &socks5Output)
 
 	// 创建带缓冲的写入器来确保日志被及时刷新
-	websocketBufWriter := bufio.NewWriter(websocketWriter)
-	socks5BufWriter := bufio.NewWriter(socks5Writer)
+	websocketBufWriter := (websocketWriter)
+	socks5BufWriter := (socks5Writer)
 
 	// 清理可能存在的旧的可执行文件
 	if _, err := os.Stat("main.exe"); err == nil {
@@ -167,12 +167,12 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	if err := buildCmd.Run(); err != nil {
 		// 刷新缓冲区确保所有日志都被捕获
-		websocketBufWriter.Flush()
+		//websocketBufWriter.Flush()
 		processManager.LogCommandResult(buildCmd, err, "")
 		t.Fatalf("编译代理服务器失败: %v", err)
 	}
 	// 刷新缓冲区确保所有日志都被捕获
-	websocketBufWriter.Flush()
+	//websocketBufWriter.Flush()
 	processManager.LogCommandResult(buildCmd, nil, "")
 	testResults = append(testResults, "✅ 代理服务器编译成功")
 	testResults = append(testResults, "")
@@ -199,7 +199,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	err := websocketCmd.Start()
 	if err != nil {
 		// 刷新缓冲区确保错误日志被捕获
-		websocketBufWriter.Flush()
+		//websocketBufWriter.Flush()
 		t.Fatalf("启动WebSocket服务器失败: %v", err)
 	}
 
@@ -209,7 +209,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	// 等待服务器启动并刷新缓冲区
 	time.Sleep(2 * time.Second)
-	websocketBufWriter.Flush()
+	//websocketBufWriter.Flush()
 	log.Printf("WebSocket服务器启动检查完成，当前输出长度: %d", websocketOutput.Len())
 
 	// 记录启动命令
@@ -252,7 +252,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 	err = socks5Cmd.Start()
 	if err != nil {
 		// 刷新缓冲区确保错误日志被捕获
-		socks5BufWriter.Flush()
+		//socks5BufWriter.Flush()
 		t.Fatalf("启动SOCKS5服务器失败: %v", err)
 	}
 
@@ -262,7 +262,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 
 	// 等待服务器启动并刷新缓冲区
 	time.Sleep(2 * time.Second)
-	socks5BufWriter.Flush()
+	//socks5BufWriter.Flush()
 	log.Printf("SOCKS5服务器启动检查完成，当前输出长度: %d", socks5Output.Len())
 
 	// 记录启动命令
@@ -473,7 +473,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 		log.Println("正在记录WebSocket服务器日志...")
 
 		// 刷新缓冲区确保所有日志都被捕获
-		websocketBufWriter.Flush()
+		//websocketBufWriter.Flush()
 
 		// 使用互斥锁保护对websocketOutput的访问
 		websocketOutputMutex.Lock()
@@ -518,7 +518,7 @@ func runWebSocketSocks5Proxy(t *testing.T) {
 		log.Println("正在记录SOCKS5服务器日志...")
 
 		// 刷新缓冲区确保所有日志都被捕获
-		socks5BufWriter.Flush()
+		//socks5BufWriter.Flush()
 
 		// 使用互斥锁保护对socks5Output的访问
 		socks5OutputMutex.Lock()
