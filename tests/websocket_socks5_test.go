@@ -34,7 +34,7 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 
 	// 创建多写入器
 	websocketWriter := io.MultiWriter(os.Stdout, &websocketOutput)
-	httpWriter := io.MultiWriter(os.Stdout, &socks5output)
+	socks5Writer := io.MultiWriter(os.Stdout, &socks5output)
 
 	// 清理可能存在的旧的可执行文件
 	if _, err := os.Stat("main.exe"); err == nil {
@@ -162,8 +162,8 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 
 	socks5Cmd := exec.Command("./main.exe", "-listen-port", "10800",
 		"-upstream-type", "websocket", "-upstream-address", "ws://localhost:38800")
-	socks5Cmd.Stdout = httpWriter
-	socks5Cmd.Stderr = httpWriter
+	socks5Cmd.Stdout = socks5Writer
+	socks5Cmd.Stderr = socks5Writer
 
 	// 记录命令执行
 	processManager.LogCommand(socks5Cmd, "HTTP")
