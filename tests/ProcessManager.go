@@ -46,7 +46,7 @@ func (pm *ProcessManager) Command(name string, arg ...string) *exec.Cmd {
 // initLogFile 初始化日志文件
 func (pm *ProcessManager) initLogFile() {
 	// 打开或创建日志文件
-	file, err := os.OpenFile("command_execution_log.md", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	file, err := os.OpenFile("command_execution_log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		// 如果无法打开日志文件，记录到标准错误输出
 		fmt.Fprintf(os.Stderr, "无法打开命令日志文件: %v\n", err)
