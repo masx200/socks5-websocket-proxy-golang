@@ -183,12 +183,12 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 	processManager.LogCommandResult(socks5Cmd, nil, "")
 
 	processManager.AddProcess(socks5Cmd)
-	log.Printf("http服务器已启动，PID: %d\n", socks5Cmd.Process.Pid)
-	testResults = append(testResults, fmt.Sprintf("📋 http服务器进程PID: %d", socks5Cmd.Process.Pid))
+	log.Printf("socks5服务器已启动，PID: %d\n", socks5Cmd.Process.Pid)
+	testResults = append(testResults, fmt.Sprintf("📋 socks5服务器进程PID: %d", socks5Cmd.Process.Pid))
 	testResults = append(testResults, "")
 
-	// 等待http服务器启动
-	testResults = append(testResults, "等待http服务器启动...")
+	// 等待socks5服务器启动
+	testResults = append(testResults, "等待socks5服务器启动...")
 	httpStarted := false
 	for i := 0; i < 10; i++ {
 		if ishttpProxyRunning() {
@@ -196,14 +196,14 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 			break
 		}
 		time.Sleep(1 * time.Second)
-		log.Printf("等待http服务器启动... %d/10\n", i+1)
+		log.Printf("等待socks5服务器启动... %d/10\n", i+1)
 	}
 
 	if !httpStarted {
-		t.Fatal("http服务器启动失败")
+		t.Fatal("socks5服务器启动失败")
 	}
 
-	testResults = append(testResults, "✅ http服务器启动成功")
+	testResults = append(testResults, "✅ socks5服务器启动成功")
 	testResults = append(testResults, "")
 
 	// 等待额外的时间确保服务器完全启动
@@ -343,14 +343,14 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 		}
 		testResults = append(testResults, "")
 
-		// 终止http服务器
-		testResults = append(testResults, "🛑 正在终止http服务器进程...")
+		// 终止socks5服务器
+		testResults = append(testResults, "🛑 正在终止socks5服务器进程...")
 		if socks5Cmd.Process != nil {
 			if err := socks5Cmd.Process.Kill(); err != nil {
-				testResults = append(testResults, fmt.Sprintf("❌ 终止http服务器进程失败: %v", err))
+				testResults = append(testResults, fmt.Sprintf("❌ 终止socks5服务器进程失败: %v", err))
 			} else {
 				socks5Cmd.Wait()
-				testResults = append(testResults, "✅ http服务器进程已终止")
+				testResults = append(testResults, "✅ socks5服务器进程已终止")
 			}
 		}
 		testResults = append(testResults, "")
@@ -383,7 +383,7 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 		testResults = append(testResults, "```")
 		testResults = append(testResults, "")
 
-		testResults = append(testResults, "### http服务器日志输出")
+		testResults = append(testResults, "### socks5服务器日志输出")
 		testResults = append(testResults, "")
 		testResults = append(testResults, "```")
 		httpLines := strings.Split(socks5output.String(), "\n")
@@ -425,7 +425,7 @@ func runWebSocketsocks5Proxy(t *testing.T, pm *ProcessManager) {
 			websocketCmd.Wait()
 		}
 
-		// 终止http服务器
+		// 终止socks5服务器
 		if socks5Cmd.Process != nil {
 			socks5Cmd.Process.Kill()
 			socks5Cmd.Wait()
