@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
 	// "os/exec"
 	"runtime"
 	"strings"
@@ -192,7 +193,7 @@ func runWebSocketsocks5Proxy(t *testing.T) {
 	testResults = append(testResults, "等待socks5服务器启动...")
 	httpStarted := false
 	for i := 0; i < 10; i++ {
-		if ishttpProxyRunning() {
+		if issocks5ProxyRunning() {
 			httpStarted = true
 			break
 		}
@@ -451,8 +452,8 @@ func runWebSocketsocks5Proxy(t *testing.T) {
 	}
 }
 
-// ishttpProxyRunning 检查http代理服务器是否正在运行
-func ishttpProxyRunning() bool {
+// issocks5ProxyRunning 检查http代理服务器是否正在运行
+func issocks5ProxyRunning() bool {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
