@@ -99,7 +99,7 @@ func (pm *ProcessManager) LogCommand(cmd *exec.Cmd, cmdType string) error {
 		cmdType,
 		cmdStr)
 
-	pm.writeLog("开始运行命令...\n"+logEntry)
+	pm.writeLog("开始运行命令...\n" + logEntry)
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (pm *ProcessManager) LogCommandResult(cmd *exec.Cmd, err error, output stri
 	}
 
 	logEntry += "---\n"
-	pm.writeLog("```\n"+logEntry+"```\n")
+	pm.writeLog("```\n" + logEntry + "```\n")
 }
 
 // AddProcess 添加进程到管理器
