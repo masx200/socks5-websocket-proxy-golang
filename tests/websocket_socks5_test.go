@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -11,10 +10,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
 	// "os/exec"
 	"runtime"
 	"strings"
-	"syscall"
+
+	// "syscall"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 )
 
 // runWebSocketsocks5Proxy 测试WebSocket和socks5级联代理服务器
-func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
+func runWebSocketsocks5Proxy(t *testing.T, logfilename string) {
 
 	var processManager *tests.ProcessManager = tests.NewProcessManager(logfilename)
 	defer func() {
@@ -119,9 +120,7 @@ func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 
 	// 设置进程属性
 	if runtime.GOOS == "windows" {
-		websocketCmd.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-		}
+		websocketCmd.SysProcAttr = NewSysProcAttr()
 	}
 
 	err := websocketCmd.Start()
@@ -173,9 +172,7 @@ func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 
 	// 设置进程属性
 	if runtime.GOOS == "windows" {
-		socks5Cmd.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-		}
+		socks5Cmd.SysProcAttr = NewSysProcAttr()
 	}
 
 	err = socks5Cmd.Start()
@@ -311,7 +308,7 @@ func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 	testResults = append(testResults, "")
 
 	// 写入测试记录到文件
-	err = WriteTestResultsWebSocket(testResults)
+	err = WriteTestResultsToFile(testResults, processManager.GetFile())
 	if err != nil {
 		t.Errorf("写入测试记录失败: %v", err)
 	}
@@ -411,7 +408,7 @@ func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 		}
 
 		// 重新写入测试记录
-		err = WriteTestResultsWebSocket(testResults)
+		err = WriteTestResultsToFile(testResults, processManager.GetFile())
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -446,7 +443,7 @@ func runWebSocketsocks5Proxy(t *testing.T,logfilename string) {
 		}
 
 		// 重新写入测试记录
-		err = WriteTestResultsWebSocket(testResults)
+		err = WriteTestResultsToFile(testResults, processManager.GetFile())
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -495,39 +492,6 @@ func IsPortOccupied2(port int) bool {
 	}
 	listener.Close()
 	return false
-}
-
-// WriteTestResultsWebSocket 写入测试结果到文件
-func WriteTestResultsWebSocket(results []string) error {
-	// 写入到测试记录.log
-	file, err := os.OpenFile("测试记录.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// 移动到文件末尾
-	_, err = file.Seek(0, io.SeekEnd)
-	if err != nil {
-		return err
-	}
-
-	writer := bufio.NewWriter(file)
-
-	// 写入分隔符
-	_, err = writer.WriteString("\n\n###\n\n")
-	if err != nil {
-		return err
-	}
-
-	// 写入测试结果
-	for _, line := range results {
-		_, err := writer.WriteString(line + "\n")
-		if err != nil {
-			return err
-		}
-	}
-	return writer.Flush()
 }
 
 // TestMain2 主测试函数
@@ -593,7 +557,7 @@ func RunMainWebSocket(t *testing.T, logfilename string) {
 		}
 
 		// 写入超时记录
-		if err := WriteTestResultsWebSocket(timeoutMessage); err != nil {
+		if err := WriteTestResultsToFile(timeoutMessage, processManager.GetFile()); err != nil {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 

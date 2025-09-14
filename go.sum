@@ -24,6 +24,8 @@ github.com/masx200/http-proxy-go-server v0.0.0-20250913132722-65c3da2903df h1:MW
 github.com/masx200/http-proxy-go-server v0.0.0-20250913132722-65c3da2903df/go.mod h1:pBY2ila89A/VLxUKtYZSn9EvYeVpA5uE+yd5UgMT5QM=
 github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5 h1:/7MywfwMHOHEh/mFizd6kDiR9lOIexAcoR7KLpKfdv0=
 github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5/go.mod h1:nmalxvhCcA6qrfdoa/x4lM6oMO2Zi4cbjr20aVoWrAk=
+github.com/masx200/http-proxy-go-server v0.0.0-20250914143245-75084aabe2c4 h1:OlhDrfdzjgRHyFN3l3Sn0f51dp9RnaGRFPK9ceLeYKs=
+github.com/masx200/http-proxy-go-server v0.0.0-20250914143245-75084aabe2c4/go.mod h1:nmalxvhCcA6qrfdoa/x4lM6oMO2Zi4cbjr20aVoWrAk=
 github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5 h1:2srQYTnSqGDj71FWB+d6ZbJsv5SFnWcoa4rW+NmlaJ0=
 github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913161719-e129640db3f5/go.mod h1:WhBu9WnG6480hixxNWLx237KHiDrDOn7U+Ioo6Cq1b4=
 github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913163641-e00608f1326e h1:4XfI423+y9rYtP5zyaBUHRLEauEz5XY2+Qx4m6PJOYU=

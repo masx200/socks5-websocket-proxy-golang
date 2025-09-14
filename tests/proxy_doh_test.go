@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"bufio"
+	// "bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -11,12 +11,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
-	// "os/exec"
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -103,7 +100,7 @@ func runProxyServer2(t *testing.T, logfilename string) {
 		timeoutTestResults = append(timeoutTestResults, "```")
 
 		// 写入超时测试记录
-		if err := WriteTestResultsDOH(timeoutTestResults); err != nil {
+		if err := WriteTestResultsToFile(timeoutTestResults, processManager.GetFile()); err != nil {
 			log.Printf("写入超时测试记录失败: %v\n", err)
 		}
 		processManager.CleanupAll()
@@ -165,9 +162,7 @@ func runProxyServer2(t *testing.T, logfilename string) {
 	// 设置进程属性，确保能终止所有子进程（跨平台兼容）
 	if runtime.GOOS == "windows" {
 		// Windows特定的进程组设置
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-		}
+		cmd.SysProcAttr = NewSysProcAttr()
 	}
 	// Unix-like系统不需要特殊设置，go会自动处理
 
@@ -379,7 +374,7 @@ func runProxyServer2(t *testing.T, logfilename string) {
 	testResults = append(testResults, "")
 
 	// 写入测试记录到文件
-	err = WriteTestResultsDOH(testResults)
+	err = WriteTestResultsToFile(testResults, processManager.GetFile())
 	if err != nil {
 		t.Errorf("写入测试记录失败: %v", err)
 	}
@@ -531,7 +526,7 @@ func runProxyServer2(t *testing.T, logfilename string) {
 		}
 
 		// 重新写入测试记录
-		err = WriteTestResultsDOH(testResults)
+		err = WriteTestResultsToFile(testResults, processManager.GetFile())
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -614,7 +609,7 @@ func runProxyServer2(t *testing.T, logfilename string) {
 		}
 
 		// 重新写入测试记录
-		err = WriteTestResultsDOH(testResults)
+		err = WriteTestResultsToFile(testResults, processManager.GetFile())
 		if err != nil {
 			t.Errorf("更新测试记录失败: %v", err)
 		}
@@ -663,39 +658,6 @@ func isDOHProxyServerRunning() bool {
 	defer resp.Body.Close()
 
 	return resp.StatusCode == 200
-}
-
-// WriteTestResultsDOH 写入测试结果到文件
-func WriteTestResultsDOH(results []string) error {
-	// 写入到测试记录.log
-	file, err := os.OpenFile("测试记录.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// 移动到文件末尾
-	_, err = file.Seek(0, io.SeekEnd)
-	if err != nil {
-		return err
-	}
-
-	writer := bufio.NewWriter(file)
-
-	// 写入分隔符
-	_, err = writer.WriteString("\n\n###\n\n")
-	if err != nil {
-		return err
-	}
-
-	// 写入测试结果
-	for _, line := range results {
-		_, err := writer.WriteString(line + "\n")
-		if err != nil {
-			return err
-		}
-	}
-	return writer.Flush()
 }
 
 // TestMainDOH 主测试函数
@@ -768,7 +730,7 @@ func RunMainDOH(t *testing.T, logfilename string) {
 		}
 
 		// 写入超时记录
-		if err := WriteTestResultsDOH(timeoutMessage); err != nil {
+		if err := WriteTestResultsToFile(timeoutMessage, processManager.GetFile()); err != nil {
 			log.Printf("写入超时记录失败: %v\n", err)
 		}
 

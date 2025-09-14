@@ -11,7 +11,7 @@ require (
 
 require (
 	gitee.com/masx200/go-socks5 v0.0.0-20250912150125-12b401692290
-	github.com/masx200/http-proxy-go-server v0.0.0-20250914134555-5854fe097ac5
+	github.com/masx200/http-proxy-go-server v0.0.0-20250914143245-75084aabe2c4
 )
 
 require (
