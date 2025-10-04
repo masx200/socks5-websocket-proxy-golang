@@ -5,7 +5,6 @@ go 1.24.1
 replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.55.0
 
 replace github.com/masx200/doq-go => github.com/masx200/doq-go v0.55.0
-replace github.com/tantalor93/doq-go => github.com/masx200/doq-go v0.55.0
 
 require (
 	github.com/gorilla/websocket v1.5.3
@@ -14,19 +13,19 @@ require (
 
 require (
 	gitee.com/masx200/go-socks5 v0.0.0-20250912150125-12b401692290
-	github.com/masx200/http-proxy-go-server v0.0.0-20250914143245-75084aabe2c4
+	github.com/masx200/http-proxy-go-server v0.0.0-20251004131404-a164fdca635f
 )
 
 require (
 	github.com/ebi-yade/altsvc-go v0.1.1 // indirect
 	github.com/fanjindong/go-cache v0.0.6 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20250913163641-e00608f1326e // indirect
+	github.com/masx200/doq-go v0.55.0 // indirect
+	github.com/masx200/http3-reverse-proxy-server-experiment v0.0.0-20251004130120-07f6b38af34d // indirect
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/tantalor93/doq-go v0.12.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
