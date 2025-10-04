@@ -4,8 +4,9 @@ go 1.24.1
 
 replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.55.0
 
+replace github.com/masx200/doq-go => github.com/masx200/doq-go v0.55.0
+replace github.com/tantalor93/doq-go => github.com/masx200/doq-go v0.55.0
 
-replace github.com/tantalor93/doq-go  => github.com/masx200/doq-go v0.55.0
 require (
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/net v0.44.0
@@ -24,7 +25,7 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tantalor93/doq-go v0.12.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/mod v0.28.0 // indirect
